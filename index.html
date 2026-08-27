@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>귀여운 두더지 잡기 게임 - 피버타임 에디션</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #3e2723;
+            color: #fff;
+            margin: 0;
+            padding: 15px;
+            user-select: none;
+            transition: background-color 0.3s;
+            overflow: hidden; /* 플로팅 텍스트 스크롤 방지 */
+        }
+
+        /* 피버 타임 배경 효과 */
+        body.fever {
+            background-color: #5c0000;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            25% { transform: translate(-1px, -2px) rotate(-1deg); }
+            50% { transform: translate(-3px, 0px) rotate(1deg); }
+            75% { transform: translate(3px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -1px) rotate(0deg); }
+        }
+
+        h1 { color: #ffeb3b; text-shadow: 2px 2px #000; margin: 10px 0; }
+
+        .info-panel {
+            font-size: 1.1rem;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .info-panel span { font-weight: bold; color: #ffca28; }
+
+        .fever-alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            font-weight: bold;
+            color: #ff3d00;
+            text-shadow: 0 0 20px #ffeb3b, 4px 4px #000;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 100;
+            transition: opacity 0.2s;
+        }
+
+        .fever-alert.show {
+            opacity: 1;
+            animation: zoomInOut 0.8s infinite alternate;
+        }
+
+        @keyframes zoomInOut {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* 타격 판정 플로팅 텍스트 */
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            text-shadow: 2px 2px #000, 0 0 10px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+        }
+
+        .shop-panel {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #ffca28;
+            border-radius: 10px;
+            padding: 8px;
+            max-width: 450px;
+            margin: 0 auto 15px;
+        }
+
+        .shop-btn {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .game-board {
+            background-color: #4caf50;
+            border: 8px solid #2e7d32;
+            border-radius: 15px;
+            padding: 15px;
+            display: inline-block;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        body.fever .game-board {
+            border-color: #ff3d00;
+            box-shadow: 0 0 30px #ff3d00;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 110px);
+            grid-template-rows: repeat(3, 110px);
+            gap: 15px;
+        }
+
+        .hole {
+            width: 110px;
+            height: 110px;
+            background-color: #3e2723;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 5px solid #270f07;
+            box-shadow: inset 0 10px 12px rgba(0,0,0,0.7);
+        }
+
+        .mole {
+            width: 90px;
+            height: 90px;
+            background-color: #8d6e63;
+            border-radius: 50% 50% 40% 40%;
+            position: absolute;
+            top: 100%;
+            left: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2rem;
+            box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2);
+            transition: top 0.1s ease-out; /* 조금 더 민첩한 움직임 */
+        }
+
+        .mole .face { margin-top: -15px; pointer-events: none; }
+
+        .mole.gold {
+            background-color: #ffd700;
+            box-shadow: 0 0 15px #ffea00, inset -4px -4px 0px rgba(0,0,0,0.1);
+        }
+
+        .hole.up .mole { top: 10px; }
+
+        .start-btn {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #8bc34a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .start-btn:disabled { background-color: #757575; }
+    </style>
+</head>
+<body>
+
+    <h1>🔨 두더지 잡기: 피버타임!</h1>
+    
+    <div class="info-panel">
+        보유 골드: <span id="gold">0</span>G | 이번 판 점수: <span id="score">0</span> | 남은 시간: <span id="time">30</span>초
+    </div>
+
+    <div class="shop-panel">
+        <div>현재 망치: <span id="hammer-name" style="color:#ffeb3b; font-weight:bold;">돌 망치</span></div>
+        <button class="shop-btn" id="upgrade-btn" onclick="upgradeHammer()">망치 업그레이드 (비용: 1000G)</button>
+    </div>
+
+    <div class="fever-alert" id="fever-alert">🔥 FEVER 🔥</div>
+
+    <div class="game-board">
+        <div class="grid">
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+            <div class="hole"><div class="mole"><span class="face">⊙_⊙</span></div></div>
+        </div>
+    </div>
+
+    <br>
+    <button class="start-btn" id="start-btn" onclick="startGame()">게임 시작</button>
+
+    <script>
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // BGM 로직
+        let bgmTimer = null;
+        let bgmNoteIndex = 0;
+        let bgmIntervalTime = 200;
+        const bgmMelody = [ 261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66, 261.63, 329.63, 392.00, 440.00, 523.25, 493.88, 440.00, 392.00 ];
+
+        function playBGMNote() {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const freq = bgmMelody[bgmNoteIndex];
+            bgmNoteIndex = (bgmNoteIndex + 1) % bgmMelody.length;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (bgmIntervalTime / 1000) * 0.9);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + (bgmIntervalTime / 1000) * 0.9);
+        }
+
+        function startBGM() {
+            stopBGM();
+            bgmNoteIndex = 0;
+            bgmIntervalTime = 220;
+            bgmTimer = setInterval(playBGMNote, bgmIntervalTime);
+        }
+
+        function setFeverBGM() {
+            bgmIntervalTime = 90; // 미친듯한 속도로 변경
+            clearInterval(bgmTimer);
+            bgmTimer = setInterval(playBGMNote, bgmIntervalTime);
+        }
+
+        function stopBGM() {
+            if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'hit') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'jaws') { // 죠스 긴박음
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(60, now);
+                osc.frequency.setValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        // 표정 정의
+        const FACES = { UP: "⊙_⊙", HIT: ">_<", MISS: "ㅋㅋㅋ" };
+
+        const holes = document.querySelectorAll('.hole');
+        const scoreDisplay = document.querySelector('#score');
+        const goldDisplay = document.querySelector('#gold');
+        const timeDisplay = document.querySelector('#time');
+        const startBtn = document.querySelector('#start-btn');
+        const feverAlert = document.querySelector('#fever-alert');
+        
+        let timeUp = false;
+        let score = 0;
+        let totalGold = parseInt(localStorage.getItem('moleGold')) || 0;
+        let timeLeft = 30; // 30초로 증가
+        let countdownTimer;
+        let peepTimeout;
+        let feverMode = false;
+
+        let hammerLevel = parseInt(localStorage.getItem('hammerLevel')) || 1;
+        const hammerData = [
+            { name: "돌 망치", duration: [1100, 1600], cost: 1000 },
+            { name: "목재 망치 (가벼움)", duration: [1300, 1800], cost: 3000 },
+            { name: "깃털 망치 (최고 속도!)", duration: [1600, 2200], cost: 0 }
+        ];
+
+        goldDisplay.textContent = totalGold;
+        updateShopUI();
+
+        function updateShopUI() {
+            const current = hammerData[hammerLevel - 1];
+            document.querySelector('#hammer-name').textContent = current.name;
+            const upgradeBtn = document.querySelector('#upgrade-btn');
+            
+            if (hammerLevel >= hammerData.length) {
+                upgradeBtn.textContent = "최고 단계 달성!";
+                upgradeBtn.disabled = true;
+            } else {
+                upgradeBtn.textContent = `망치 업그레이드 (${current.cost}G)`;
+                upgradeBtn.disabled = totalGold < current.cost;
+            }
+        }
+
+        function upgradeHammer() {
+            const current = hammerData[hammerLevel - 1];
+            if (totalGold >= current.cost && hammerLevel < hammerData.length) {
+                totalGold -= current.cost;
+                hammerLevel++;
+                localStorage.setItem('moleGold', totalGold);
+                localStorage.setItem('hammerLevel', hammerLevel);
+                goldDisplay.textContent = totalGold;
+                updateShopUI();
+            }
+        }
+
+        function randomTime(min, max) {
+            return Math.round(Math.random() * (max - min) + min);
+        }
+
+        // 플로팅 점수 & 판정 텍스트 생성
+        function createFloatingText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.textContent = text;
+            el.style.left = `${x - 20}px`;
+            el.style.top = `${y - 20}px`;
+            el.style.color = color;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function schedulePeep() {
+            if (timeUp) return;
+
+            const currentHammer = hammerData[hammerLevel - 1];
+            // 피버 타임일 땐 쉬는 시간 거의 없이 계속 나타남
+            const delay = feverMode ? randomTime(100, 300) : randomTime(400, 800);
+
+            peepTimeout = setTimeout(() => {
+                if (timeUp) return;
+
+                // 일반 모드는 1마리, 피버 타임은 2~4마리 동시 출현
+                let count = feverMode ? (Math.floor(Math.random() * 3) + 2) : 1; 
+
+                // 현재 비어있는 구멍 찾기
+                const availableHoles = Array.from(holes).filter(h => !h.classList.contains('up'));
+                
+                for(let i=0; i < count && availableHoles.length > 0; i++) {
+                    const idx = Math.floor(Math.random() * availableHoles.length);
+                    const hole = availableHoles.splice(idx, 1)[0];
+                    const mole = hole.querySelector('.mole');
+                    const face = mole.querySelector('.face');
+
+                    face.textContent = FACES.UP;
+                    mole.dataset.hit = "false";
+                    mole.dataset.appearTime = Date.now(); // 등장 시간 기록 (반응속도 측정용)
+
+                    // 피버 타임엔 황금 두더지 50% 확률!
+                    const isGold = Math.random() < (feverMode ? 0.5 : 0.2);
+                    mole.className = 'mole' + (isGold ? ' gold' : '');
+                    mole.dataset.basePoints = isGold ? "300" : "100";
+
+                    hole.classList.add('up');
+
+                    // 피버 타임엔 두더지가 머무는 시간도 극단적으로 랜덤해짐 (짧음~긺 섞임)
+                    let stayTime = randomTime(currentHammer.duration[0], currentHammer.duration[1]);
+                    if (feverMode) stayTime = randomTime(400, 1200);
+
+                    setTimeout(() => {
+                        if (mole.dataset.hit === "false") {
+                            face.textContent = FACES.MISS;
+                        }
+                        setTimeout(() => hole.classList.remove('up'), 200);
+                    }, stayTime);
+                }
+
+                schedulePeep();
+            }, delay);
+        }
+
+        function startGame() {
+            initAudio();
+            startBGM();
+            clearTimeout(peepTimeout);
+
+            score = 0;
+            timeLeft = 30;
+            timeUp = false;
+            feverMode = false;
+            
+            scoreDisplay.textContent = 0;
+            timeDisplay.textContent = timeLeft;
+            startBtn.disabled = true;
+            document.body.classList.remove('fever');
+            feverAlert.classList.remove('show');
+
+            schedulePeep();
+
+            countdownTimer = setInterval(() => {
+                timeLeft--;
+                timeDisplay.textContent = timeLeft;
+
+                // 남은 시간 7초: 피버 타임 진입
+                if (timeLeft === 7) {
+                    feverMode = true;
+                    document.body.classList.add('fever');
+                    feverAlert.classList.add('show');
+                    playSound('jaws'); // 피버 시작 알림
+                    setFeverBGM();     // BGM 템포 폭주
+                }
+
+                // 남은 시간 4초: 죠스음 한 번 더 강조
+                if (timeLeft === 4) {
+                    playSound('jaws');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    stopBGM();
+                    timeUp = true;
+                    startBtn.disabled = false;
+                    document.body.classList.remove('fever');
+                    feverAlert.classList.remove('show');
+
+                    totalGold += score;
+                    localStorage.setItem('moleGold', totalGold);
+                    goldDisplay.textContent = totalGold;
+                    updateShopUI();
+
+                    setTimeout(() => alert(`게임 종료! 총 ${score}G 획득!`), 100);
+                }
+            }, 1000);
+        }
+
+        function bonk(e) {
+            if (!e.isTrusted || this.dataset.hit === "true") return;
+            
+            this.dataset.hit = "true";
+            this.querySelector('.face').textContent = FACES.HIT;
+            playSound('hit');
+
+            // 반응 속도에 따른 점수 차등 지급 계산
+            const reactionTime = Date.now() - parseInt(this.dataset.appearTime);
+            const basePoints = parseInt(this.dataset.basePoints) || 100;
+            
+            let multiplier = 1;
+            let textMsg = "GOOD!";
+            let textColor = "#fff";
+
+            if (reactionTime < 450) {
+                multiplier = 2.0;       // 0.45초 이내면 점수 2배
+                textMsg = "PERFECT!";
+                textColor = "#ff4081";
+            } else if (reactionTime < 750) {
+                multiplier = 1.5;       // 0.75초 이내면 점수 1.5배
+                textMsg = "GREAT!";
+                textColor = "#03a9f4";
+            }
+
+            const finalPoints = Math.floor(basePoints * multiplier);
+            score += finalPoints;
+            scoreDisplay.textContent = score;
+
+            // 마우스 위치에 점수 및 판정 텍스트 띄우기
+            createFloatingText(e.clientX, e.clientY, `${textMsg} +${finalPoints}`, textColor);
+
+            setTimeout(() => this.parentNode.classList.remove('up'), 150);
+        }
+
+        document.querySelectorAll('.mole').forEach(mole => mole.addEventListener('mousedown', bonk));
+    </script>
+</body>
+</html>
