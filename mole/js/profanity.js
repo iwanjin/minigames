@@ -50,8 +50,11 @@ const Profanity = (function () {
   const BANNED_EN = [
     // 일반 욕설
     'fuck', 'fcuk', 'fuk', 'fck', 'fking', 'fukin', 'fcking', 'fucker',
-    // l33t 정규화 후 남는 변형 (f4ck -> fack, ph 치환 등)
-    'fack', 'fcak', 'phuck', 'phuk', 'fukc',
+    // l33t/자모 정규화 후에도 남는 변형.
+    // f4ck·f@ck 는 4·@ 가 a 로 매핑돼 'fack' 이 되므로 원형만으론 안 걸린다.
+    // v·x·q 는 매핑 대상이 아니라서 fvck·fxck·fuq 도 따로 넣어야 한다.
+    'fack', 'fcak', 'fukc', 'fvck', 'fxck', 'fuq',
+    'phuck', 'phuk', 'phack',
     'motherfucker', 'mthrfckr', 'wtf',
     'shit', 'shyt', 'sht', 'bullshit',
     'ass', 'asshole', 'azzhole', 'asshat', 'jackass', 'dumbass',
