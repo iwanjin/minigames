@@ -180,6 +180,171 @@
         }
 
         .start-btn:disabled { background-color: #757575; }
+
+        .best-line {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #d7ccc8;
+        }
+
+        /* ===== 기록 / 글로벌 순위표 ===== */
+        .score-section {
+            max-width: 520px;
+            margin: 24px auto 0;
+            text-align: left;
+        }
+
+        .score-section h2 {
+            font-size: 1.1rem;
+            color: #ffeb3b;
+            text-shadow: 1px 1px #000;
+            margin: 0 0 10px;
+            text-align: center;
+        }
+
+        .lb-status {
+            font-size: 0.85rem;
+            color: #d7ccc8;
+            background: rgba(0,0,0,0.35);
+            border-radius: 10px;
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .lb-status.hidden { display: none; }
+
+        #lb-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .lb-row {
+            display: grid;
+            grid-template-columns: 2.2rem 1fr auto;
+            grid-template-areas: "rank name score" ". meta meta";
+            align-items: center;
+            gap: 2px 8px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        .lb-row-me {
+            border-color: #ffca28;
+            background: rgba(255, 202, 40, 0.14);
+        }
+
+        .lb-rank { grid-area: rank; font-weight: bold; text-align: center; }
+        .lb-name { grid-area: name; display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .lb-score { grid-area: score; font-weight: bold; color: #ffca28; white-space: nowrap; }
+        .lb-meta { grid-area: meta; font-size: 0.75rem; color: #bcaaa4; }
+
+        .lb-flag { font-size: 1rem; }
+
+        .lb-me {
+            font-size: 0.68rem;
+            background: #ffca28;
+            color: #3e2723;
+            border-radius: 999px;
+            padding: 1px 7px;
+            font-weight: bold;
+        }
+
+        .lb-ip { font-size: 0.7rem; color: #a1887f; }
+
+        /* ===== 게임 종료 결과 창 ===== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 500;
+        }
+
+        .modal-backdrop.hidden { display: none; }
+
+        .modal-card {
+            background: #4e342e;
+            border: 3px solid #ffca28;
+            border-radius: 18px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        }
+
+        .modal-card h2 { margin: 0 0 4px; color: #ffeb3b; font-size: 1.3rem; }
+
+        .result-score {
+            font-size: 2.6rem;
+            font-weight: bold;
+            color: #fff;
+            margin: 6px 0 2px;
+        }
+
+        .result-score span { font-size: 1.1rem; color: #ffca28; margin-left: 4px; }
+
+        .result-detail { font-size: 0.85rem; color: #d7ccc8; margin: 0 0 4px; }
+        .result-best { font-size: 0.85rem; color: #ffca28; margin: 0 0 16px; }
+
+        .nickname-row { display: flex; gap: 8px; }
+
+        #nickname-input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 2px solid #8d6e63;
+            background: #3e2723;
+            color: #fff;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        #nickname-input:focus { outline: none; border-color: #ffca28; }
+        #nickname-input:disabled { opacity: 0.5; }
+
+        #submit-score-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            background: #ffca28;
+            color: #3e2723;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        #submit-score-btn:disabled { background: #6d4c41; color: #bcaaa4; cursor: not-allowed; }
+
+        .submit-msg { font-size: 0.82rem; color: #d7ccc8; margin: 10px 0 0; min-height: 1.2em; }
+        .submit-msg.error { color: #ff8a80; }
+        .submit-msg.ok { color: #a5d6a7; }
+
+        #result-close-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            border: 2px solid #8d6e63;
+            border-radius: 10px;
+            background: transparent;
+            color: #d7ccc8;
+            font-size: 0.95rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        #result-close-btn:hover { border-color: #ffca28; color: #fff; }
     </style>
 </head>
 <body>
@@ -191,6 +356,7 @@
     
     <div class="info-panel">
         보유 골드: <span id="gold">0</span>G | 이번 판 점수: <span id="score">0</span> | 남은 시간: <span id="time">30</span>초
+        <div class="best-line">내 최고 점수: <span id="best-score">0</span>점</div>
     </div>
 
     <div class="shop-panel">
@@ -218,6 +384,35 @@
     <br>
     <button class="start-btn" id="start-btn" onclick="startGame()">게임 시작</button>
     </div>
+
+    <!-- 순위표는 #stage 밖에 둔다. 피버 타임에 흔들리면 읽기 어렵다. -->
+    <section class="score-section">
+        <h2>🏆 전 세계 TOP 10</h2>
+        <p class="lb-status" id="lb-status">순위를 불러오는 중...</p>
+        <ol id="lb-list"></ol>
+    </section>
+
+    <div class="modal-backdrop hidden" id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div class="modal-card">
+            <h2 id="result-title">게임 종료!</h2>
+            <p class="result-score"><span id="result-score">0</span><span>점</span></p>
+            <p class="result-detail" id="result-detail"></p>
+            <p class="result-best" id="result-best"></p>
+
+            <div class="nickname-row">
+                <input type="text" id="nickname-input" placeholder="닉네임 (최대 12자)" autocomplete="off">
+                <button type="button" id="submit-score-btn">기록 등록</button>
+            </div>
+            <p class="submit-msg" id="submit-msg"></p>
+
+            <button type="button" id="result-close-btn">닫기</button>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/profanity.js"></script>
+    <script src="js/cloud.js"></script>
+    <script src="js/scoreboard.js"></script>
 
     <script>
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -311,6 +506,8 @@
         
         let timeUp = false;
         let score = 0;
+        let hits = 0;      // 이번 판에 잡은 두더지 수
+        let perfects = 0;  // 이번 판 PERFECT 판정 수
         let totalGold = parseInt(localStorage.getItem('moleGold')) || 0;
         let timeLeft = 30; // 30초로 증가
         let countdownTimer;
@@ -424,6 +621,8 @@
             clearTimeout(peepTimeout);
 
             score = 0;
+            hits = 0;
+            perfects = 0;
             timeLeft = 30;
             timeUp = false;
             feverMode = false;
@@ -467,7 +666,13 @@
                     goldDisplay.textContent = totalGold;
                     updateShopUI();
 
-                    setTimeout(() => alert(`게임 종료! 총 ${score}G 획득!`), 100);
+                    // 결과 창에서 기록 등록까지 진행한다.
+                    setTimeout(() => ScoreBoard.onGameEnd({
+                        score: score,
+                        hits: hits,
+                        perfects: perfects,
+                        hammer: hammerData[hammerLevel - 1].name
+                    }), 300);
                 }
             }, 1000);
         }
@@ -491,6 +696,7 @@
                 multiplier = 2.0;       // 0.45초 이내면 점수 2배
                 textMsg = "PERFECT!";
                 textColor = "#ff4081";
+                perfects++;
             } else if (reactionTime < 750) {
                 multiplier = 1.5;       // 0.75초 이내면 점수 1.5배
                 textMsg = "GREAT!";
@@ -499,6 +705,7 @@
 
             const finalPoints = Math.floor(basePoints * multiplier);
             score += finalPoints;
+            hits++;
             scoreDisplay.textContent = score;
 
             // 마우스 위치에 점수 및 판정 텍스트 띄우기
