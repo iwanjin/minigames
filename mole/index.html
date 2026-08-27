@@ -30,7 +30,7 @@
             --radius: 18px;
             /* 게임판 최대 폭: 스크롤 없이 들어오게 화면 세로에서 역산한다.
                3열 x 4행이라 판 높이 = 폭 x 4/3, 즉 폭 = 남은 높이 x 0.75 */
-            --ui-h: 25.5rem; /* 제목+정보+상점+시작 버튼이 쓰는 세로 길이 (실측값) */
+            --ui-h: 25.75rem; /* 제목+정보+상점+시작 버튼이 쓰는 세로 길이 (실측값) */
             --board-max: min(30rem, max(12rem, (100vh - var(--ui-h)) * 0.75));
             --board-max: min(30rem, max(12rem, (100svh - var(--ui-h)) * 0.75));
         }
@@ -231,26 +231,54 @@
             100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
         }
 
-        /* ===== 상점 ===== */
+        /* ===== 상점 =====
+           망치 등급마다 색이 달라진다. data-tier 는 지금 든 망치,
+           data-next 는 업그레이드 버튼으로 살 다음 망치 색이다. */
         .shop-panel {
+            /* 기본값 = 1단계(돌) */
+            --tier: #90a4ae;
+            --tier-dark: #445c68;
+            --tier-light: #eceff1;
+
             background: var(--card);
-            border: 3px solid var(--purple);
+            border: 3px solid var(--tier);
             border-radius: var(--radius);
             padding: clamp(10px, 2.6vw, 14px);
             width: min(100%, 30rem);
             margin: 0 auto clamp(10px, 2.6vw, 16px);
-            box-shadow: 0 4px 0 rgba(124, 77, 255, 0.35);
+            box-shadow: 0 4px 0 var(--tier);
             font-size: clamp(0.98rem, 3.4vw, 1.12rem);
             font-weight: bold;
         }
+
+        /* 1단계 돌 = 회색 / 2단계 목재 = 나무 갈색 / 3단계 깃털 = 하늘색 */
+        .shop-panel[data-tier="2"] { --tier: #c08552; --tier-dark: #8a5626; --tier-light: #f8e9d8; }
+        .shop-panel[data-tier="3"] { --tier: #4fc3f7; --tier-dark: #0277bd; --tier-light: #e1f5fe; }
+
+        /* 현재 망치 이름을 등급 색 배지로 */
+        #hammer-name {
+            display: inline-block;
+            padding: 0 10px;
+            line-height: 1.35;
+            border-radius: 999px;
+            background: var(--tier-light);
+            border: 2px solid var(--tier);
+            color: var(--tier-dark);
+            font-weight: 900;
+        }
+
+        /* 업그레이드 버튼은 "사게 될 다음 망치" 색으로 물들인다 */
+        .shop-panel[data-next="2"] .shop-btn { --btn-light: #d9a06a; --btn: #c08552; --btn-dark: #8a5626; }
+        .shop-panel[data-next="3"] .shop-btn { --btn-light: #81d4fa; --btn: #29b6f6; --btn-dark: #0277bd; }
 
         .shop-btn {
             display: block;
             width: 100%;
             min-height: 48px;
             margin-top: 10px;
-            background: linear-gradient(180deg, #9a72ff, #7c4dff);
+            background: linear-gradient(180deg, var(--btn-light, #9a72ff), var(--btn, #7c4dff));
             color: #fff;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
             border: none;
             border-radius: 14px;
             padding: 10px 14px;
@@ -258,11 +286,11 @@
             font-weight: bold;
             font-family: inherit;
             cursor: pointer;
-            box-shadow: 0 4px 0 #5a30d6;
+            box-shadow: 0 4px 0 var(--btn-dark, #5a30d6);
             touch-action: manipulation;
         }
 
-        .shop-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #5a30d6; }
+        .shop-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 var(--btn-dark, #5a30d6); }
         .shop-btn:disabled { background: #cfcbe0; box-shadow: 0 4px 0 #b3aecb; cursor: default; }
 
         /* ===== 게임판 ===== */
@@ -369,10 +397,10 @@
         .mole.gold .face::before {
             content: '👑';
             position: absolute;
-            top: -8%;
+            top: -9%;
             left: 50%;
             transform: translateX(-50%) rotate(-8deg);
-            font-size: 0.6em;
+            font-size: 0.8em;
             line-height: 1;
             filter: drop-shadow(0 1px 1px rgba(120, 80, 0, 0.5));
         }
@@ -727,7 +755,7 @@
 
             h1 {
                 grid-area: title;
-                margin: 34px 0 2px; /* 고정된 목록 링크 아래에서 시작 */
+                margin: 32px 0 2px; /* 고정된 목록 링크 아래에서 시작 */
                 font-size: clamp(0.95rem, 2.6vw, 1.3rem);
             }
 
@@ -788,7 +816,7 @@
     </div>
 
     <div class="shop-panel">
-        <div>현재 망치: <span id="hammer-name" style="color:#e2571a; font-weight:900;">돌 망치</span></div>
+        <div>현재 망치: <span id="hammer-name">🔨 돌 망치</span></div>
         <button class="shop-btn" id="upgrade-btn" onclick="upgradeHammer()">망치 업그레이드 (비용: 1000G)</button>
     </div>
 
@@ -943,9 +971,9 @@
 
         let hammerLevel = parseInt(localStorage.getItem('hammerLevel')) || 1;
         const hammerData = [
-            { name: "돌 망치", duration: [1100, 1600], cost: 1000 },
-            { name: "목재 망치 (가벼움)", duration: [1300, 1800], cost: 3000 },
-            { name: "깃털 망치 (최고 속도!)", duration: [1600, 2200], cost: 0 }
+            { name: "돌 망치", icon: "🔨", duration: [1100, 1600], cost: 1000 },
+            { name: "목재 망치 (가벼움)", icon: "🪵", duration: [1300, 1800], cost: 3000 },
+            { name: "깃털 망치 (최고 속도!)", icon: "🪶", duration: [1600, 2200], cost: 0 }
         ];
 
         goldDisplay.textContent = totalGold;
@@ -953,14 +981,21 @@
 
         function updateShopUI() {
             const current = hammerData[hammerLevel - 1];
-            document.querySelector('#hammer-name').textContent = current.name;
+            document.querySelector('#hammer-name').textContent = `${current.icon} ${current.name}`;
+
+            // 상점 패널 색을 등급에 맞춘다 (지금 망치 = tier, 살 망치 = next)
+            const panel = document.querySelector('.shop-panel');
+            panel.dataset.tier = hammerLevel;
+            panel.dataset.next = Math.min(hammerLevel + 1, hammerData.length);
+
             const upgradeBtn = document.querySelector('#upgrade-btn');
             
             if (hammerLevel >= hammerData.length) {
                 upgradeBtn.textContent = "최고 단계 달성!";
                 upgradeBtn.disabled = true;
             } else {
-                upgradeBtn.textContent = `망치 업그레이드 (${current.cost}G)`;
+                const next = hammerData[hammerLevel];
+                upgradeBtn.textContent = `${next.icon} ${next.name.split(' (')[0]} 사기 (${current.cost}G)`;
                 upgradeBtn.disabled = totalGold < current.cost;
             }
         }
