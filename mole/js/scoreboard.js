@@ -89,15 +89,18 @@ const ScoreBoard = (function () {
     node.classList.toggle('hidden', !text);
   }
 
-  function renderRows(list) {
+  function renderRows(list, fromCache) {
     const ol = el('lb-list');
     if (!ol) return;
     ol.innerHTML = '';
 
     if (!list.length) {
-      setStatus('아직 기록이 없어요. 첫 기록의 주인이 되어 보세요!');
+      // 캐시에서 온 빈 목록은 "기록 없음" 이 아니라 "아직 안 왔음" 이다.
+      // 서버 응답(fromCache === false)이 오기 전까지는 불러오는 중으로 둔다.
+      setStatus(fromCache ? LOADING_TEXT : '아직 기록이 없어요. 첫 기록의 주인이 되어 보세요!');
       return;
     }
+    serverAnswered = true;
     setStatus('');
 
     list.forEach((entry, idx) => {
@@ -133,16 +136,29 @@ const ScoreBoard = (function () {
     return '글로벌 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
   }
 
+  const LOADING_TEXT = '순위를 불러오는 중...';
+  let serverAnswered = false;
+
   async function startLeaderboard() {
     if (!MoleCloud.isReady()) {
       setStatus(statusForReason('not_configured'));
       return;
     }
-    setStatus('순위를 불러오는 중...');
+    setStatus(LOADING_TEXT);
+
+    // 전파가 끊긴 곳에선 오류도 안 나고 응답도 안 온다.
+    // 계속 "불러오는 중" 으로 두지 말고 안내 문구로 바꾼다.
+    const stuckTimer = setTimeout(() => {
+      if (!serverAnswered) setStatus(statusForReason('error'));
+    }, 10000);
+
     unsubscribe = await MoleCloud.subscribeTop(
       TOP_N,
-      renderRows,
-      (reason) => setStatus(statusForReason(reason))
+      (list, fromCache) => {
+        if (!fromCache) { serverAnswered = true; clearTimeout(stuckTimer); }
+        renderRows(list, fromCache);
+      },
+      (reason) => { clearTimeout(stuckTimer); setStatus(statusForReason(reason)); }
     );
   }
 

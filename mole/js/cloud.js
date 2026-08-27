@@ -151,7 +151,11 @@ const MoleCloud = (function () {
   }
 
   // ====== TOP N 실시간 구독 ======
-  // onUpdate(list) / onError(reason). 반환값은 unsubscribe 함수.
+  // onUpdate(list, fromCache) / onError(reason). 반환값은 unsubscribe 함수.
+  //
+  // 첫 스냅샷은 로컬 캐시에서 먼저 온다. 캐시가 비어 있으면 서버에 기록이
+  // 있어도 빈 목록이 한 번 전달되므로, fromCache 를 같이 넘겨서 화면이
+  // "아직 기록이 없어요" 를 성급하게 띄우지 않게 한다.
   async function subscribeTop(limitN, onUpdate, onError) {
     if (!isReady()) {
       onError && onError('not_configured');
@@ -162,7 +166,9 @@ const MoleCloud = (function () {
       const me = getDeviceId();
       return mod.onSnapshot(
         topQuery(db, limitN),
-        (snap) => onUpdate(snap.docs.map(d => mapDoc(d, me))),
+        // 서버 응답 도착(fromCache: false)을 놓치지 않으려면 메타데이터 변경도 받아야 한다
+        { includeMetadataChanges: true },
+        (snap) => onUpdate(snap.docs.map(d => mapDoc(d, me)), snap.metadata.fromCache),
         (err) => {
           console.warn('[MoleCloud] subscribeTop 오류', err);
           const denied = err && err.code === 'permission-denied';
