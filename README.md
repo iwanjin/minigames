@@ -4,9 +4,9 @@
 
 ## 플레이
 
-- 게임 목록: https://iwanjin.github.io/mole-fever-game/
-- 귀여운 두더지 잡기 (피버타임 에디션): https://iwanjin.github.io/mole-fever-game/mole/
-- 포켓몬 레전드: 히스이의 전설 (엔드 콘텐츠 확장판): https://iwanjin.github.io/mole-fever-game/pocket/
+- 게임 목록: https://iwanjin.github.io/minigames/
+- 귀여운 두더지 잡기 (피버타임 에디션): https://iwanjin.github.io/minigames/mole/
+- 포켓몬 레전드: 히스이의 전설 (엔드 콘텐츠 확장판): https://iwanjin.github.io/minigames/pocket/
 
 ## 구조
 
