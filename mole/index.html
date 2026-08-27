@@ -89,6 +89,7 @@
 
         @media (prefers-reduced-motion: reduce) {
             body.fever #stage { animation: none; }
+            .mole.gold .face::after { animation: none; opacity: 0.85; }
         }
 
         /* 좌측 상단 목록 링크 (#stage 밖 / position: fixed 유지) */
@@ -294,7 +295,7 @@
             width: 100%;
             aspect-ratio: 1 / 1;
             container-type: inline-size; /* 두더지 얼굴 글자를 구멍 크기에 비례시키기 위함 */
-            background: radial-gradient(circle at 50% 32%, #22140c 0%, #3d2517 68%, #55341f 100%);
+            background: radial-gradient(circle at 50% 32%, #2b1a10 0%, #4a2e1c 68%, #63401f 100%);
             border-radius: 50%;
             position: relative;
             overflow: hidden;
@@ -309,7 +310,10 @@
             left: 9%;
             top: 100%;
             position: absolute;
-            background: linear-gradient(180deg, #c58e60 0%, #9a6742 100%);
+            background:
+                /* 밝은 주둥이 — 얼굴 아래쪽을 밝혀서 표정이 또렷해진다 */
+                radial-gradient(ellipse at 50% 80%, rgba(255, 244, 226, 0.72) 0 24%, rgba(255, 244, 226, 0) 58%),
+                linear-gradient(180deg, #e8b183 0%, #c98552 55%, #a96c40 100%);
             border-radius: 50% 50% 42% 42%;
             cursor: pointer;
             display: flex;
@@ -317,8 +321,8 @@
             align-items: center;
             font-size: 1.9rem;  /* container query 미지원 브라우저 폴백 */
             font-size: 30cqw;
-            color: #3a2416;
-            box-shadow: inset -4px -6px 0 rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(58, 36, 22, 0.3);
+            color: #402512;
+            box-shadow: inset -4px -6px 0 rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(90, 56, 30, 0.35);
             transition: top 0.1s ease-out; /* 조금 더 민첩한 움직임 */
             touch-action: manipulation;
         }
@@ -332,25 +336,74 @@
             width: 26%;
             height: 26%;
             border-radius: 50%;
-            background: #8a5a38;
+            background: #a96c40;
         }
 
         .mole::before { left: 1%; }
         .mole::after { right: 1%; }
 
         .mole .face {
+            /* position 을 주지 않는다 — 주는 순간 왕관/반짝임의 기준이 얼굴 글자로
+               바뀌어 이마에 붙는다. flex 아이템은 static 이어도 z-index 가 먹으므로
+               귀(::after) 위로 올리는 데는 z-index 만으로 충분하다. */
+            z-index: 2;
             margin-top: -10%;
             pointer-events: none;
             letter-spacing: -0.04em;
         }
 
         .mole.gold {
-            background: linear-gradient(180deg, #ffe680 0%, #ffc400 100%);
-            box-shadow: 0 0 16px #ffea00, inset -4px -6px 0 rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(120, 80, 0, 0.35);
+            background:
+                radial-gradient(ellipse at 50% 80%, rgba(255, 253, 230, 0.8) 0 24%, rgba(255, 253, 230, 0) 58%),
+                linear-gradient(180deg, #fff3a0 0%, #ffd524 55%, #f7b500 100%);
+            color: #6b4300;
+            box-shadow: 0 0 18px rgba(255, 213, 36, 0.95), inset -4px -6px 0 rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(150, 100, 0, 0.35);
         }
 
         .mole.gold::before,
-        .mole.gold::after { background: #f0a800; }
+        .mole.gold::after { background: #f2b705; }
+
+        /* 황금 두더지에만 작은 왕관 + 머리 주변 반짝임.
+           .face 의 가상 요소를 쓰므로 클릭 판정(.mole)에는 영향이 없다.
+           크기 단위는 em — 얼굴 글자 크기(=구멍 크기)에 비례해서 같이 커진다. */
+        .mole.gold .face::before {
+            content: '👑';
+            position: absolute;
+            top: -8%;
+            left: 50%;
+            transform: translateX(-50%) rotate(-8deg);
+            font-size: 0.6em;
+            line-height: 1;
+            filter: drop-shadow(0 1px 1px rgba(120, 80, 0, 0.5));
+        }
+
+        .mole.gold .face::after {
+            content: '';
+            position: absolute;
+            top: 4%;
+            left: 50%;
+            width: 0.16em;
+            height: 0.16em;
+            border-radius: 50%;
+            background: transparent;
+            /* 흰 점 + 그 뒤에 짙은 호박색 테두리 점을 겹쳐 노란 몸통 위에서도 또렷하게.
+               box-shadow 는 뒤에 적힌 것이 아래에 깔린다. */
+            box-shadow:
+                -0.92em  0.16em 0  0.00em #ffffff,
+                 0.92em  0.22em 0 -0.02em #ffffff,
+                -0.60em -0.30em 0 -0.02em #ffffff,
+                 0.62em -0.26em 0 -0.01em #fffce0,
+                -0.92em  0.16em 0  0.07em rgba(150, 92, 0, 0.5),
+                 0.92em  0.22em 0  0.05em rgba(150, 92, 0, 0.5),
+                -0.60em -0.30em 0  0.04em rgba(150, 92, 0, 0.45),
+                 0.62em -0.26em 0  0.05em rgba(150, 92, 0, 0.45);
+            animation: sparkle 1.2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.75); }
+            50%      { opacity: 1;   transform: scale(1.2); }
+        }
 
         .hole.up .mole { top: 8%; }
 
