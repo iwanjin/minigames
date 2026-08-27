@@ -5,22 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>귀여운 두더지 잡기 게임 - 피버타임 에디션</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            background-color: #3e2723;
-            color: #fff;
-            margin: 0;
-            padding: 15px;
-            user-select: none;
-            transition: background-color 0.3s;
-            overflow: hidden; /* 플로팅 텍스트 스크롤 방지 */
+        /* ============================================================
+           두더지 잡기 — 유동 레이아웃 + 초등학생 친화 디자인
+           - 길이는 clamp()/%/aspect-ratio 로만 잡아서 320px~와이드까지 대응
+           - 게임판은 width: min(100%, --board-max) 하나로 크기 결정,
+             구멍/두더지/얼굴 글자는 모두 게임판 크기에 비례 (cqw 사용)
+           ============================================================ */
+        :root {
+            /* --- 색상 팔레트 (밝은 하늘 + 잔디, 포인트는 노랑/주황/보라) --- */
+            --sky-1: #5ecdff;
+            --sky-2: #a9eaff;
+            --sky-3: #bdf28d;
+            --ink: #2f2a56;          /* 본문 진한 남보라 — 흰 카드 위에서 대비 12:1 이상 */
+            --ink-soft: #5f5a86;
+            --yellow: #ffd23f;
+            --orange: #ff8a3d;
+            --deep-orange: #e2571a;
+            --purple: #7c4dff;
+            --card: rgba(255, 255, 255, 0.94);
+
+            /* --- 레이아웃 --- */
+            --page-pad: clamp(10px, 3vw, 24px);
+            --gap: clamp(6px, 1.8vw, 14px);
+            --radius: 18px;
+            /* 게임판 최대 폭: 스크롤 없이 들어오게 화면 세로에서 역산한다.
+               3열 x 4행이라 판 높이 = 폭 x 4/3, 즉 폭 = 남은 높이 x 0.75 */
+            --ui-h: 25.5rem; /* 제목+정보+상점+시작 버튼이 쓰는 세로 길이 (실측값) */
+            --board-max: min(30rem, max(12rem, (100vh - var(--ui-h)) * 0.75));
+            --board-max: min(30rem, max(12rem, (100svh - var(--ui-h)) * 0.75));
         }
 
-        /* 피버 타임 배경 효과 */
-        body.fever {
-            background-color: #5c0000;
+        * { box-sizing: border-box; }
+
+        html {
+            /* 피버 타임 shake 가 가로 스크롤바를 만들지 않게 잘라낸다.
+               세로 스크롤(순위표)은 그대로 살아있다. */
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
         }
+
+        body {
+            font-family: 'Trebuchet MS', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            text-align: center;
+            background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 46%, var(--sky-3) 100%) fixed;
+            color: var(--ink);
+            margin: 0;
+            padding: var(--page-pad) var(--page-pad) calc(var(--page-pad) * 2.5);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* 피버 타임 배경 효과 — 붉은 화면을 오버레이로 깔아 부드럽게 전환.
+           밝은 평상시 화면 ↔ 어두운 붉은 화면의 대비를 크게 유지한다. */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #ff5252 0%, #c62828 55%, #7f0000 100%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        body.fever::before { opacity: 1; }
 
         /* 흔들림은 게임 화면에만 적용해서 상단 목록 링크는 고정 */
         body.fever #stage {
@@ -35,32 +87,120 @@
             100% { transform: translate(1px, -1px) rotate(0deg); }
         }
 
-        h1 { color: #ffeb3b; text-shadow: 2px 2px #000; margin: 10px 0; }
-
-        .info-panel {
-            font-size: 1.1rem;
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-bottom: 10px;
+        @media (prefers-reduced-motion: reduce) {
+            body.fever #stage { animation: none; }
         }
 
-        .info-panel span { font-weight: bold; color: #ffca28; }
+        /* 좌측 상단 목록 링크 (#stage 밖 / position: fixed 유지) */
+        .back-link {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 2px solid rgba(47, 42, 86, 0.15);
+            color: var(--ink);
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+        }
 
+        #stage {
+            max-width: 40rem;
+            margin: 0 auto;
+            padding-top: clamp(46px, 9vw, 58px); /* 고정 목록 링크와 겹치지 않게 */
+        }
+
+        h1 {
+            font-size: clamp(1.3rem, 5.4vw, 2.2rem);
+            color: #fff;
+            text-shadow: -2px -2px 0 var(--deep-orange), 2px -2px 0 var(--deep-orange),
+                         -2px 2px 0 var(--deep-orange), 2px 2px 0 var(--deep-orange),
+                         0 5px 0 rgba(0, 0, 0, 0.2);
+            margin: 0 0 clamp(8px, 2vw, 16px);
+        }
+
+        /* ===== 정보 패널 ===== */
+        .info-panel {
+            background: var(--card);
+            border: 3px solid #fff;
+            border-radius: var(--radius);
+            padding: clamp(10px, 2.6vw, 15px);
+            width: min(100%, 30rem);
+            margin: 0 auto clamp(10px, 2.2vw, 14px);
+            box-shadow: 0 4px 0 rgba(47, 42, 86, 0.16);
+            font-size: clamp(1rem, 3.6vw, 1.2rem);
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: clamp(6px, 2vw, 12px);
+        }
+
+        .stat {
+            flex: 1 1 5.2rem;
+            min-width: 4.6rem;
+            background: #fff6da;
+            border: 2px solid #ffe6a6;
+            border-radius: 12px;
+            padding: 6px 8px;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            display: block;
+            white-space: nowrap;
+            font-size: 0.74em;
+            font-weight: bold;
+            color: var(--ink-soft);
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: 900;
+            color: var(--deep-orange);
+        }
+
+        .stat-unit { font-size: 0.85em; font-weight: bold; color: var(--ink-soft); }
+
+        .stat.stat-score .stat-value { color: var(--purple); }
+        .stat.stat-time .stat-value { color: #1565c0; }
+        body.fever .stat.stat-time .stat-value { color: #d50000; }
+
+        .best-line {
+            margin-top: 10px;
+            font-size: 0.92em;
+            font-weight: bold;
+            color: var(--ink-soft);
+        }
+
+        .best-line span { color: var(--deep-orange); }
+
+        /* ===== 피버 알림 / 플로팅 텍스트 =====
+           둘 다 position: fixed — 스크롤 길이에 영향을 주지 않는다. */
         .fever-alert {
-            position: absolute;
-            top: 50%;
+            position: fixed;
+            top: 42%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 5rem;
-            font-weight: bold;
-            color: #ff3d00;
-            text-shadow: 0 0 20px #ffeb3b, 4px 4px #000;
+            font-size: clamp(2.3rem, 13vw, 5rem);
+            font-weight: 900;
+            color: #fff700;
+            text-shadow: 0 0 18px #ff3d00, 0 4px 0 #b71c1c, 0 0 44px rgba(255, 61, 0, 0.9);
             pointer-events: none;
             opacity: 0;
             z-index: 100;
             transition: opacity 0.2s;
+            white-space: nowrap;
         }
 
         .fever-alert.show {
@@ -75,13 +215,14 @@
 
         /* 타격 판정 플로팅 텍스트 */
         .floating-text {
-            position: absolute;
-            font-weight: bold;
-            font-size: 1.5rem;
+            position: fixed;
+            font-weight: 900;
+            font-size: clamp(1.15rem, 4.6vw, 1.7rem);
             pointer-events: none;
             animation: floatUp 0.8s ease-out forwards;
-            text-shadow: 2px 2px #000, 0 0 10px rgba(0,0,0,0.5);
-            z-index: 50;
+            text-shadow: 0 2px 0 #000, 0 0 10px rgba(0, 0, 0, 0.6);
+            z-index: 300;
+            white-space: nowrap;
         }
 
         @keyframes floatUp {
@@ -89,126 +230,184 @@
             100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
         }
 
+        /* ===== 상점 ===== */
         .shop-panel {
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid #ffca28;
-            border-radius: 10px;
-            padding: 8px;
-            max-width: 450px;
-            margin: 0 auto 15px;
+            background: var(--card);
+            border: 3px solid var(--purple);
+            border-radius: var(--radius);
+            padding: clamp(10px, 2.6vw, 14px);
+            width: min(100%, 30rem);
+            margin: 0 auto clamp(10px, 2.6vw, 16px);
+            box-shadow: 0 4px 0 rgba(124, 77, 255, 0.35);
+            font-size: clamp(0.98rem, 3.4vw, 1.12rem);
+            font-weight: bold;
         }
 
         .shop-btn {
-            background-color: #ff9800;
-            color: white;
+            display: block;
+            width: 100%;
+            min-height: 48px;
+            margin-top: 10px;
+            background: linear-gradient(180deg, #9a72ff, #7c4dff);
+            color: #fff;
             border: none;
-            padding: 6px 12px;
-            border-radius: 5px;
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-size: clamp(0.95rem, 3.3vw, 1.05rem);
             font-weight: bold;
+            font-family: inherit;
             cursor: pointer;
+            box-shadow: 0 4px 0 #5a30d6;
+            touch-action: manipulation;
         }
 
+        .shop-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #5a30d6; }
+        .shop-btn:disabled { background: #cfcbe0; box-shadow: 0 4px 0 #b3aecb; cursor: default; }
+
+        /* ===== 게임판 ===== */
         .game-board {
-            background-color: #4caf50;
-            border: 8px solid #2e7d32;
-            border-radius: 15px;
-            padding: 15px;
-            display: inline-block;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            width: min(100%, var(--board-max));
+            margin: 0 auto;
+            background: linear-gradient(180deg, #85e56f 0%, #4cc95f 100%);
+            border: clamp(4px, 1.4vw, 8px) solid #2fa14a;
+            border-radius: clamp(14px, 3vw, 22px);
+            padding: clamp(8px, 2.2vw, 16px);
+            box-shadow: 0 8px 18px rgba(20, 60, 20, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.45);
             transition: border-color 0.3s, box-shadow 0.3s;
         }
 
+        /* 피버 타임: 붉은 배경 위에서도 판이 확실히 튀도록 노란 테두리 */
         body.fever .game-board {
-            border-color: #ff3d00;
-            box-shadow: 0 0 30px #ff3d00;
+            border-color: #ffea00;
+            box-shadow: 0 0 26px #ffea00, 0 0 60px rgba(255, 61, 0, 0.6);
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(4, 110px);
-            grid-template-rows: repeat(3, 110px);
-            gap: 15px;
+            /* 세로 화면은 3열 x 4행 — 판이 세로로 길어져 폰 화면을 가득 채운다.
+               가로로 눕히면 아래 landscape 규칙이 4열 x 3행으로 되돌린다. */
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gap);
         }
 
         .hole {
-            width: 110px;
-            height: 110px;
-            background-color: #3e2723;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            container-type: inline-size; /* 두더지 얼굴 글자를 구멍 크기에 비례시키기 위함 */
+            background: radial-gradient(circle at 50% 32%, #22140c 0%, #3d2517 68%, #55341f 100%);
             border-radius: 50%;
             position: relative;
             overflow: hidden;
-            border: 5px solid #270f07;
-            box-shadow: inset 0 10px 12px rgba(0,0,0,0.7);
+            border: clamp(3px, 1vw, 5px) solid #a9714a;
+            box-shadow: inset 0 8px 14px rgba(0, 0, 0, 0.75);
+            touch-action: manipulation;
         }
 
         .mole {
-            width: 90px;
-            height: 90px;
-            background-color: #8d6e63;
-            border-radius: 50% 50% 40% 40%;
-            position: absolute;
+            width: 82%;
+            height: 84%;
+            left: 9%;
             top: 100%;
-            left: 10px;
+            position: absolute;
+            background: linear-gradient(180deg, #c58e60 0%, #9a6742 100%);
+            border-radius: 50% 50% 42% 42%;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.2rem;
-            box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2);
+            font-size: 1.9rem;  /* container query 미지원 브라우저 폴백 */
+            font-size: 30cqw;
+            color: #3a2416;
+            box-shadow: inset -4px -6px 0 rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(58, 36, 22, 0.3);
             transition: top 0.1s ease-out; /* 조금 더 민첩한 움직임 */
+            touch-action: manipulation;
         }
 
-        .mole .face { margin-top: -15px; pointer-events: none; }
+        /* 귀 (클릭 판정은 .mole 이 그대로 받는다) */
+        .mole::before,
+        .mole::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 26%;
+            height: 26%;
+            border-radius: 50%;
+            background: #8a5a38;
+        }
+
+        .mole::before { left: 1%; }
+        .mole::after { right: 1%; }
+
+        .mole .face {
+            margin-top: -10%;
+            pointer-events: none;
+            letter-spacing: -0.04em;
+        }
 
         .mole.gold {
-            background-color: #ffd700;
-            box-shadow: 0 0 15px #ffea00, inset -4px -4px 0px rgba(0,0,0,0.1);
+            background: linear-gradient(180deg, #ffe680 0%, #ffc400 100%);
+            box-shadow: 0 0 16px #ffea00, inset -4px -6px 0 rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(120, 80, 0, 0.35);
         }
 
-        .hole.up .mole { top: 10px; }
+        .mole.gold::before,
+        .mole.gold::after { background: #f0a800; }
 
+        .hole.up .mole { top: 8%; }
+
+        /* ===== 시작 버튼 ===== */
         .start-btn {
-            padding: 12px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            background-color: #8bc34a;
-            color: white;
+            display: block;
+            width: min(100%, 20rem);
+            min-height: 58px;
+            margin: clamp(12px, 3vw, 20px) auto 0;
+            padding: 12px 24px;
+            font-size: clamp(1.15rem, 4.2vw, 1.45rem);
+            font-weight: 900;
+            font-family: inherit;
+            background: linear-gradient(180deg, #ffb03a, #ff7a1a);
+            color: #fff;
+            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
             border: none;
-            border-radius: 8px;
+            border-radius: 999px;
             cursor: pointer;
-            margin-top: 15px;
+            box-shadow: 0 5px 0 #d1541b, 0 8px 16px rgba(0, 0, 0, 0.2);
+            touch-action: manipulation;
         }
 
-        .start-btn:disabled { background-color: #757575; }
+        .start-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 #d1541b; }
 
-        .best-line {
-            margin-top: 6px;
-            font-size: 0.85rem;
-            color: #d7ccc8;
+        .start-btn:disabled {
+            background: linear-gradient(180deg, #cfcbe0, #b3aecb);
+            box-shadow: 0 5px 0 #9a95b5;
+            cursor: default;
         }
 
         /* ===== 기록 / 글로벌 순위표 ===== */
         .score-section {
-            max-width: 520px;
-            margin: 24px auto 0;
+            max-width: 34rem;
+            margin: clamp(20px, 5vw, 32px) auto 0;
             text-align: left;
         }
 
         .score-section h2 {
-            font-size: 1.1rem;
-            color: #ffeb3b;
-            text-shadow: 1px 1px #000;
-            margin: 0 0 10px;
+            font-size: clamp(1.15rem, 4.2vw, 1.5rem);
+            color: #fff;
+            text-shadow: -2px -2px 0 var(--deep-orange), 2px -2px 0 var(--deep-orange),
+                         -2px 2px 0 var(--deep-orange), 2px 2px 0 var(--deep-orange),
+                         0 4px 0 rgba(0, 0, 0, 0.18);
+            margin: 0 0 clamp(8px, 2vw, 14px);
             text-align: center;
         }
 
         .lb-status {
-            font-size: 0.85rem;
-            color: #d7ccc8;
-            background: rgba(0,0,0,0.35);
-            border-radius: 10px;
-            padding: 10px 12px;
+            font-size: clamp(0.95rem, 3.4vw, 1.05rem);
+            font-weight: bold;
+            color: var(--ink-soft);
+            background: var(--card);
+            border-radius: 14px;
+            padding: 14px 16px;
             text-align: center;
+            margin: 0;
         }
 
         .lb-status.hidden { display: none; }
@@ -219,132 +418,295 @@
             padding: 0;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: clamp(6px, 1.6vw, 10px);
         }
 
         .lb-row {
             display: grid;
-            grid-template-columns: 2.2rem 1fr auto;
+            grid-template-columns: 2.6rem minmax(0, 1fr) auto;
             grid-template-areas: "rank name score" ". meta meta";
             align-items: center;
-            gap: 2px 8px;
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 8px 12px;
-            font-size: 0.9rem;
+            gap: 2px clamp(6px, 2vw, 12px);
+            background: var(--card);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 14px;
+            padding: clamp(9px, 2.4vw, 12px) clamp(10px, 2.8vw, 16px);
+            font-size: clamp(0.98rem, 3.5vw, 1.1rem);
+            box-shadow: 0 3px 0 rgba(47, 42, 86, 0.12);
+            color: var(--ink);
         }
 
         .lb-row-me {
-            border-color: #ffca28;
-            background: rgba(255, 202, 40, 0.14);
+            border-color: var(--yellow);
+            background: #fff6da;
         }
 
-        .lb-rank { grid-area: rank; font-weight: bold; text-align: center; }
-        .lb-name { grid-area: name; display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .lb-score { grid-area: score; font-weight: bold; color: #ffca28; white-space: nowrap; }
-        .lb-meta { grid-area: meta; font-size: 0.75rem; color: #bcaaa4; }
+        .lb-rank { grid-area: rank; font-weight: 900; text-align: center; font-size: 1.05em; }
 
-        .lb-flag { font-size: 1rem; }
+        .lb-name {
+            grid-area: name;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 3px 6px;
+            min-width: 0;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .lb-score { grid-area: score; font-weight: 900; color: var(--deep-orange); white-space: nowrap; }
+        .lb-meta { grid-area: meta; font-size: 0.82em; font-weight: bold; color: var(--ink-soft); }
+
+        .lb-flag { font-size: 1.15em; }
 
         .lb-me {
-            font-size: 0.68rem;
-            background: #ffca28;
-            color: #3e2723;
+            font-size: 0.72em;
+            background: var(--purple);
+            color: #fff;
             border-radius: 999px;
-            padding: 1px 7px;
+            padding: 2px 8px;
             font-weight: bold;
         }
 
-        .lb-ip { font-size: 0.7rem; color: #a1887f; }
+        .lb-ip { font-size: 0.78em; color: #8b87a6; font-weight: normal; }
 
         /* ===== 게임 종료 결과 창 ===== */
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(20, 10, 40, 0.68);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: clamp(12px, 4vw, 24px);
             z-index: 500;
+            overflow-y: auto; /* 세로가 짧은 화면에서 결과 창을 스크롤로 볼 수 있게 */
+            overscroll-behavior: contain;
         }
 
         .modal-backdrop.hidden { display: none; }
 
         .modal-card {
-            background: #4e342e;
-            border: 3px solid #ffca28;
-            border-radius: 18px;
-            padding: 24px;
+            background: linear-gradient(180deg, #fffdf6, #fff3d6);
+            border: 4px solid var(--yellow);
+            border-radius: 22px;
+            padding: clamp(16px, 4.5vw, 26px);
             width: 100%;
-            max-width: 360px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            max-width: 24rem;
+            margin: auto; /* 내용이 길어져도 위쪽이 잘리지 않게 */
+            color: var(--ink);
+            text-align: center;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
         }
 
-        .modal-card h2 { margin: 0 0 4px; color: #ffeb3b; font-size: 1.3rem; }
+        .modal-card h2 {
+            margin: 0 0 6px;
+            color: var(--deep-orange);
+            font-size: clamp(1.3rem, 5vw, 1.6rem);
+        }
 
         .result-score {
-            font-size: 2.6rem;
-            font-weight: bold;
-            color: #fff;
-            margin: 6px 0 2px;
+            font-size: clamp(2.4rem, 11vw, 3.2rem);
+            font-weight: 900;
+            color: var(--purple);
+            margin: 4px 0 2px;
+            line-height: 1.05;
         }
 
-        .result-score span { font-size: 1.1rem; color: #ffca28; margin-left: 4px; }
+        /* "점" 글자만 작게 — #result-score 는 큰 크기를 유지한다. */
+        .result-score span:last-child { font-size: 0.34em; color: var(--ink-soft); margin-left: 4px; }
 
-        .result-detail { font-size: 0.85rem; color: #d7ccc8; margin: 0 0 4px; }
-        .result-best { font-size: 0.85rem; color: #ffca28; margin: 0 0 16px; }
+        .result-detail {
+            font-size: clamp(0.95rem, 3.6vw, 1.05rem);
+            font-weight: bold;
+            color: var(--ink-soft);
+            margin: 0 0 4px;
+        }
 
-        .nickname-row { display: flex; gap: 8px; }
+        .result-best {
+            font-size: clamp(0.95rem, 3.6vw, 1.05rem);
+            font-weight: bold;
+            color: var(--deep-orange);
+            margin: 0 0 16px;
+        }
+
+        .nickname-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
         #nickname-input {
-            flex: 1;
+            flex: 3 1 8rem;
             min-width: 0;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 2px solid #8d6e63;
-            background: #3e2723;
-            color: #fff;
-            font-size: 1rem;
+            min-height: 48px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 3px solid #e6dcbe;
+            background: #fff;
+            color: var(--ink);
+            font-size: 1.05rem; /* 16px 이상 — 모바일에서 입력 시 자동 확대 방지 */
+            font-weight: bold;
             font-family: inherit;
         }
 
-        #nickname-input:focus { outline: none; border-color: #ffca28; }
-        #nickname-input:disabled { opacity: 0.5; }
+        #nickname-input::placeholder { color: #a9a4c0; font-weight: normal; }
+        #nickname-input:focus { outline: 3px solid rgba(124, 77, 255, 0.35); border-color: var(--purple); }
+        #nickname-input:disabled { opacity: 0.55; }
 
         #submit-score-btn {
-            padding: 10px 16px;
+            flex: 1 1 5.5rem;
+            min-height: 48px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 10px;
-            background: #ffca28;
-            color: #3e2723;
-            font-weight: bold;
-            font-size: 0.95rem;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #ffb03a, #ff8a1a);
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.02rem;
+            font-family: inherit;
             cursor: pointer;
             white-space: nowrap;
+            box-shadow: 0 4px 0 #d1541b;
+            touch-action: manipulation;
         }
 
-        #submit-score-btn:disabled { background: #6d4c41; color: #bcaaa4; cursor: not-allowed; }
+        #submit-score-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #d1541b; }
+        #submit-score-btn:disabled { background: #cfcbe0; box-shadow: 0 4px 0 #b3aecb; cursor: not-allowed; }
 
-        .submit-msg { font-size: 0.82rem; color: #d7ccc8; margin: 10px 0 0; min-height: 1.2em; }
-        .submit-msg.error { color: #ff8a80; }
-        .submit-msg.ok { color: #a5d6a7; }
+        .submit-msg {
+            font-size: clamp(0.9rem, 3.4vw, 1rem);
+            font-weight: bold;
+            color: var(--ink-soft);
+            margin: 12px 0 0;
+            min-height: 1.3em;
+        }
+
+        .submit-msg.error { color: #d32f2f; }
+        .submit-msg.ok { color: #2e7d32; }
 
         #result-close-btn {
             width: 100%;
-            margin-top: 16px;
+            min-height: 48px;
+            margin-top: 14px;
             padding: 10px;
-            border: 2px solid #8d6e63;
-            border-radius: 10px;
-            background: transparent;
-            color: #d7ccc8;
-            font-size: 0.95rem;
+            border: 3px solid #e6dcbe;
+            border-radius: 12px;
+            background: #fff;
+            color: var(--ink-soft);
+            font-size: 1.05rem;
+            font-weight: bold;
             font-family: inherit;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
-        #result-close-btn:hover { border-color: #ffca28; color: #fff; }
+        #result-close-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+        /* 넓은 화면은 글자/여백이 커져서 게임판 위아래가 더 필요하다 */
+        @media (min-width: 700px) {
+            :root { --ui-h: 29rem; }
+        }
+
+        /* 세로가 짧은 화면에서는 게임판이 최대한 첫 화면에 들어오도록 여백을 줄인다. */
+        @media (max-height: 720px) {
+            h1 { margin-bottom: 6px; }
+            .info-panel { padding: 8px 10px; }
+            .stat { padding: 3px 6px; }
+            .best-line { margin-top: 6px; font-size: 0.86em; }
+            .shop-panel { padding: 8px 10px; }
+            .shop-btn { margin-top: 6px; min-height: 46px; }
+            .start-btn { margin-top: 10px; min-height: 52px; }
+        }
+
+        /* 세로가 짧은 폰(640~720px): 위아래 UI를 최대한 눌러서 게임판을 키운다.
+           여기서 줄인 만큼 --ui-h 도 같이 낮춰야 게임판 계산이 맞는다. */
+        @media (max-width: 699px) and (max-height: 720px) {
+            :root { --ui-h: 20rem; }
+
+            h1 { font-size: clamp(1rem, 4.2vw, 1.25rem); margin-bottom: 4px; }
+            .info-panel { padding: 6px 8px; margin-bottom: 6px; }
+            .stat { padding: 2px 5px; }
+            .stat-label { font-size: 0.68em; }
+            .stat-value { font-size: 1.2em; }
+            .best-line { margin-top: 3px; font-size: 0.78em; }
+            .shop-panel { padding: 6px 8px; margin-bottom: 6px; font-size: 0.95rem; }
+            .shop-btn { margin-top: 5px; min-height: 42px; }
+            .start-btn { margin-top: 8px; min-height: 48px; }
+        }
+
+        /* 노트북(가로는 넓고 세로가 낮은 화면): 시작 버튼까지 한 화면에 들어오게 */
+        @media (min-width: 700px) and (max-height: 950px) {
+            h1 { margin-bottom: 8px; }
+            .info-panel { padding: 10px 12px; margin-bottom: 10px; }
+            .shop-panel { padding: 10px 12px; margin-bottom: 10px; }
+            .start-btn { margin-top: 12px; }
+        }
+
+        @media (max-height: 560px) {
+            #stage { padding-top: 46px; }
+            h1 { font-size: clamp(1.05rem, 4vw, 1.35rem); }
+            .shop-btn, .start-btn { min-height: 44px; }
+        }
+
+        /* ===== 가로로 눕힌 휴대폰 =====
+           세로로 쌓으면 게임판이 화면 밖으로 밀린다.
+           왼쪽에 정보/상점/시작 버튼, 오른쪽에 게임판을 놓아
+           스크롤 없이 두 손 엄지로 바로 칠 수 있게 한다. */
+        @media (orientation: landscape) and (max-height: 620px) {
+            :root {
+                /* 가로 모드에선 세로 길이가 게임판 크기를 결정한다 (판 비율 4:3) */
+                --board-max: min(30rem, max(11rem, (100vh - 3rem) * 1.3));
+                --board-max: min(30rem, max(11rem, (100svh - 3rem) * 1.3));
+            }
+
+            .back-link { top: 6px; left: 6px; min-height: 34px; padding: 0 11px; font-size: 0.85rem; }
+
+            #stage {
+                display: grid;
+                grid-template-columns: minmax(9rem, 1fr) auto;
+                grid-template-areas:
+                    "title board"
+                    "info  board"
+                    "shop  board"
+                    "start board";
+                align-content: center;
+                gap: 6px clamp(8px, 2vw, 16px);
+                max-width: none;
+                padding-top: 4px;
+            }
+
+            h1 {
+                grid-area: title;
+                margin: 34px 0 2px; /* 고정된 목록 링크 아래에서 시작 */
+                font-size: clamp(0.95rem, 2.6vw, 1.3rem);
+            }
+
+            .info-panel { grid-area: info; width: 100%; margin: 0; padding: 8px 10px; }
+            .shop-panel { grid-area: shop; width: 100%; margin: 0; padding: 8px 10px; }
+
+            /* 좁은 왼쪽 칸에서도 세 칸이 한 줄에 들어가야 세로 높이가 안 늘어난다 */
+            .stats { flex-wrap: nowrap; gap: 6px; }
+            .stat { flex: 1 1 0; min-width: 0; padding: 2px 4px; }
+            .stat-label { font-size: 0.68em; }
+            .stat-value { font-size: 1.25em; }
+            .best-line { margin-top: 4px; font-size: 0.82em; }
+            .shop-btn { margin-top: 6px; min-height: 42px; }
+
+            .start-btn {
+                grid-area: start;
+                width: 100%;
+                min-height: 46px;
+                margin: 6px 0 0;
+            }
+
+            /* 눕힌 화면에선 가로로 넓은 4열 x 3행이 잡기 편하다 */
+            .grid { grid-template-columns: repeat(4, 1fr); }
+
+            .game-board {
+                grid-area: board;
+                align-self: center;
+                /* 왼쪽 칸을 짓누르지 않게 가로 폭도 함께 제한 */
+                width: min(var(--board-max), 58vw);
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -355,12 +717,25 @@
     <h1>🔨 두더지 잡기: 피버타임!</h1>
     
     <div class="info-panel">
-        보유 골드: <span id="gold">0</span>G | 이번 판 점수: <span id="score">0</span> | 남은 시간: <span id="time">30</span>초
-        <div class="best-line">내 최고 점수: <span id="best-score">0</span>점</div>
+        <div class="stats">
+            <div class="stat stat-gold">
+                <span class="stat-label">보유 골드</span>
+                <span class="stat-value" id="gold">0</span><span class="stat-unit">G</span>
+            </div>
+            <div class="stat stat-score">
+                <span class="stat-label">점수</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat stat-time">
+                <span class="stat-label">남은 시간</span>
+                <span class="stat-value" id="time">30</span><span class="stat-unit">초</span>
+            </div>
+        </div>
+        <div class="best-line">🏅 내 최고 점수 <span id="best-score">0</span>점</div>
     </div>
 
     <div class="shop-panel">
-        <div>현재 망치: <span id="hammer-name" style="color:#ffeb3b; font-weight:bold;">돌 망치</span></div>
+        <div>현재 망치: <span id="hammer-name" style="color:#e2571a; font-weight:900;">돌 망치</span></div>
         <button class="shop-btn" id="upgrade-btn" onclick="upgradeHammer()">망치 업그레이드 (비용: 1000G)</button>
     </div>
 
@@ -381,8 +756,7 @@
         </div>
     </div>
 
-    <br>
-    <button class="start-btn" id="start-btn" onclick="startGame()">게임 시작</button>
+    <button class="start-btn" id="start-btn" onclick="startGame()">🎮 게임 시작</button>
     </div>
 
     <!-- 순위표는 #stage 밖에 둔다. 피버 타임에 흔들리면 읽기 어렵다. -->
@@ -400,7 +774,7 @@
             <p class="result-best" id="result-best"></p>
 
             <div class="nickname-row">
-                <input type="text" id="nickname-input" placeholder="닉네임 (최대 12자)" autocomplete="off">
+                <input type="text" id="nickname-input" placeholder="닉네임 (12자까지)" autocomplete="off">
                 <button type="button" id="submit-score-btn">기록 등록</button>
             </div>
             <p class="submit-msg" id="submit-msg"></p>
@@ -714,8 +1088,15 @@
             setTimeout(() => this.parentNode.classList.remove('up'), 150);
         }
 
-        document.querySelectorAll('.mole').forEach(mole => mole.addEventListener('mousedown', bonk));
+        // 터치(멀티터치)·마우스·펜을 한 번에 받는다.
+        // mousedown 만 쓰면 모바일에서 두 손가락으로 두 마리를 동시에 때릴 수 없고,
+        // 합성 mousedown 이 늦게 도착해서 반응 속도 판정(PERFECT)에서도 손해를 본다.
+        document.querySelectorAll('.mole').forEach(mole => {
+            mole.addEventListener('pointerdown', bonk);
+            // 길게 누를 때 뜨는 컨텍스트 메뉴 방지
+            mole.addEventListener('contextmenu', e => e.preventDefault());
+        });
     </script>
-<a href="../" style="position:fixed;top:10px;left:10px;z-index:9999;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;font:bold 0.8rem sans-serif;text-decoration:none">&#8592; 게임 목록</a>
+<a href="../" class="back-link">&#8592; 게임 목록</a>
 </body>
 </html>
