@@ -20,6 +20,10 @@
         /* 피버 타임 배경 효과 */
         body.fever {
             background-color: #5c0000;
+        }
+
+        /* 흔들림은 게임 화면에만 적용해서 상단 목록 링크는 고정 */
+        body.fever #stage {
             animation: shake 0.5s infinite;
         }
 
@@ -180,6 +184,9 @@
 </head>
 <body>
 
+    <div class="fever-alert" id="fever-alert">🔥 FEVER 🔥</div>
+
+    <div id="stage">
     <h1>🔨 두더지 잡기: 피버타임!</h1>
     
     <div class="info-panel">
@@ -190,8 +197,6 @@
         <div>현재 망치: <span id="hammer-name" style="color:#ffeb3b; font-weight:bold;">돌 망치</span></div>
         <button class="shop-btn" id="upgrade-btn" onclick="upgradeHammer()">망치 업그레이드 (비용: 1000G)</button>
     </div>
-
-    <div class="fever-alert" id="fever-alert">🔥 FEVER 🔥</div>
 
     <div class="game-board">
         <div class="grid">
@@ -212,6 +217,7 @@
 
     <br>
     <button class="start-btn" id="start-btn" onclick="startGame()">게임 시작</button>
+    </div>
 
     <script>
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -503,6 +509,6 @@
 
         document.querySelectorAll('.mole').forEach(mole => mole.addEventListener('mousedown', bonk));
     </script>
-<a href="../" style="position:absolute;top:10px;left:10px;z-index:9999;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;font:bold 0.8rem sans-serif;text-decoration:none">&#8592; 게임 목록</a>
+<a href="../" style="position:fixed;top:10px;left:10px;z-index:9999;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;font:bold 0.8rem sans-serif;text-decoration:none">&#8592; 게임 목록</a>
 </body>
 </html>

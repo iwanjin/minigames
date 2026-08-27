@@ -47,6 +47,7 @@
     }
 
     .game {
+        position: relative;
         display: block;
         padding: 22px;
         background: var(--card);
@@ -82,6 +83,18 @@
         border: 1px solid rgba(241, 196, 15, 0.3);
     }
 
+    /* 다른 사이트로 이동하는 카드 표시 */
+    .external {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        font-size: 0.7rem;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 2px 8px;
+    }
+
     footer {
         margin-top: 40px;
         text-align: center;
@@ -100,6 +113,17 @@
     </header>
 
     <main class="games">
+        <a class="game" href="https://iwanjin.github.io/easygo-catmemories/" target="_blank" rel="noopener">
+            <span class="external">다른 사이트 ↗</span>
+            <div class="emoji">🐱</div>
+            <h2>냥냥 메모리즈</h2>
+            <p>고양이 카드를 뒤집어 짝을 맞추는 기억력 게임. 여러 모드와 콤보, 전 세계 순위표를 갖췄습니다.</p>
+            <div class="tags">
+                <span class="tag">기억력</span>
+                <span class="tag">글로벌 랭킹</span>
+            </div>
+        </a>
+
         <a class="game" href="mole/">
             <div class="emoji">🔨</div>
             <h2>귀여운 두더지 잡기</h2>
@@ -119,9 +143,32 @@
                 <span class="tag">턴제 RPG</span>
             </div>
         </a>
+
+        <a class="game" href="https://easy-go-baduk.onrender.com/" target="_blank" rel="noopener">
+            <span class="external">다른 사이트 ↗</span>
+            <div class="emoji">⚫</div>
+            <h2>오목</h2>
+            <p>다섯 개를 먼저 이으면 승리. 열린 화면 위쪽 <b>오목</b> 탭을 누르면 오목으로 바뀝니다. 로컬 대전, AI 대전, 온라인 대전을 지원합니다.</p>
+            <div class="tags">
+                <span class="tag">Easy Go</span>
+                <span class="tag">AI · 온라인 대전</span>
+            </div>
+        </a>
+
+        <a class="game" href="https://easy-go-baduk.onrender.com/" target="_blank" rel="noopener">
+            <span class="external">다른 사이트 ↗</span>
+            <div class="emoji">⬜</div>
+            <h2>바둑</h2>
+            <p>판 크기 선택, 접바둑, 계가까지 지원하는 정식 바둑. 열린 화면 위쪽 <b>바둑</b> 탭이 기본으로 선택됩니다.</p>
+            <div class="tags">
+                <span class="tag">Easy Go</span>
+                <span class="tag">계가 · 접바둑</span>
+            </div>
+        </a>
     </main>
 
     <footer>
+        <p>오목·바둑은 무료 서버를 쓰기 때문에 오랫동안 접속이 없으면 첫 화면이 뜨는 데 30초 정도 걸릴 수 있습니다.</p>
         <p>소스: <a href="https://github.com/iwanjin/minigames">github.com/iwanjin/minigames</a></p>
     </footer>
 </div>
