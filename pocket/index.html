@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>포켓몬 레전드: 히스이의 전설 (엔드 콘텐츠 확장판)</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #12131C; color: #fff; text-align: center; padding: 20px; margin: 0; }
+        #game-box { max-width: 540px; margin: 0 auto; background: #1E202D; padding: 20px; border-radius: 16px; border: 2px solid #3A3D52; box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative; }
+        .title { color: #F1C40F; margin-top: 0; text-shadow: 0 0 10px rgba(241,196,15,0.4); }
+        .btn { background: #E67E22; color: white; border: none; padding: 10px 14px; margin: 4px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #D35400; transform: translateY(-2px); }
+        .btn:disabled { background: #555; cursor: not-allowed; transform: none; }
+        .btn-bag { background: #2ECC71; } .btn-bag:hover { background: #27AE60; }
+        .btn-boss { background: #9B59B6; } .btn-boss:hover { background: #8E44AD; }
+        .btn-end { background: #E74C3C; } .btn-end:hover { background: #C0392B; }
+        .btn-league { background: #3498DB; } .btn-league:hover { background: #2980B9; }
+        
+        #log { background: #0A0B10; height: 170px; overflow-y: auto; text-align: left; padding: 12px; margin-top: 15px; border-radius: 8px; font-size: 0.9em; line-height: 1.5; border: 1px solid #2C2D3C; }
+        
+        .stat-bar { background: #333; height: 12px; border-radius: 6px; overflow: hidden; margin: 6px 0; border: 1px solid #444; }
+        .hp-fill { background: linear-gradient(90deg, #2ECC71, #27AE60); height: 100%; width: 100%; transition: width 0.3s; }
+        
+        #bag-modal { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(10,10,15,0.95); border-radius: 16px; padding: 20px; box-sizing: border-box; z-index: 100; overflow-y: auto; }
+        .bag-item { background: #2A2C3D; padding: 12px; margin: 8px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3D405B; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <h2 class="title">🌲 포켓몬 레전드: 히스이의 전설</h2>
+    <div>도감 연구도: <span id="research-point" style="color:#F1C40F; font-weight:bold;">0</span> / 100</div>
+    <div style="margin-top: 8px;">
+        <button class="btn btn-bag" onclick="openBag()">🎒 가방 (포켓몬 교체/치료)</button>
+    </div>
+    <hr style="border-color: #3A3D52; margin: 15px 0;">
+    
+    <!-- 전투 화면 -->
+    <div id="battle-area" style="display:none;">
+        <h3 id="enemy-name" style="color: #E74C3C; margin-bottom: 5px;">야생 포켓몬</h3>
+        <div class="stat-bar"><div id="enemy-hp" class="hp-fill"></div></div>
+        <p style="margin-top:2px;">상대 HP: <span id="enemy-hp-text">100/100</span></p>
+        
+        <h4 id="player-pokemon-name" style="color: #3498DB; margin-bottom: 5px;">🟢 내 포켓몬</h4>
+        <div class="stat-bar"><div id="player-hp" class="hp-fill"></div></div>
+        <p style="margin-top:2px;">내 HP: <span id="player-hp-text">100/100</span></p>
+    </div>
+
+    <!-- 기본 / 보스 전투 컨트롤 -->
+    <div id="actions">
+        <button id="btn-explore" class="btn" onclick="explore()">🔍 야생 탐험하기</button>
+        <button id="btn-story" class="btn btn-boss" style="display:none;" onclick="startStoryBoss()">⚔️ 전설의 보스 도전!</button>
+        
+        <!-- 엔드 콘텐츠 메뉴 (무쇠무인 격파 후 등장) -->
+        <div id="end-game-menu" style="display:none; margin-top: 10px;">
+            <p style="color:#F1C40F; font-weight:bold; margin-bottom:5px;">🏆 엔드 콘텐츠 컨텐츠 선택 🏆</p>
+            <button class="btn btn-end" onclick="startGymLeader()">🏛️ 체육관 관장 배틀</button>
+            <button class="btn btn-league" onclick="startBattleLeague()">⚡ 배틀리그 (극악 AI)</button>
+            <button class="btn" style="background:#E67E22;" onclick="startBlaziken()">🔥 번치코 잡기</button>
+        </div>
+
+        <div id="battle-actions" style="display:none;">
+            <button class="btn" onclick="attack('normal')">⚔️ 일반 공격</button>
+            <button class="btn" onclick="attack('agile')">⚡ 속공 (턴 선점)</button>
+            <button class="btn" onclick="attack('strong')">💥 강공 (고위력)</button>
+            <button id="btn-catch" class="btn" style="background:#2980B9;" onclick="catchPokemon()">🔴 몬스터볼 투척</button>
+        </div>
+    </div>
+
+    <div id="log"></div>
+
+    <!-- 가방 모달 -->
+    <div id="bag-modal">
+        <h3>🎒 지닌 포켓몬 목록</h3>
+        <div id="bag-list"></div>
+        <button class="btn" style="background:#E74C3C; margin-top:15px;" onclick="closeBag()">닫기</button>
+    </div>
+</div>
+
+<script>
+    // 1. 야생 포켓몬 5종
+    const wildList = [
+        { name: "⚡ 렌트라", hp: 110, maxHp: 110, atk: 22 },
+        { name: "🪨 딱구리", hp: 120, maxHp: 120, atk: 20 },
+        { name: "🦅 찌르호크", hp: 95, maxHp: 95, atk: 24 },
+        { name: "🐉 한카리아스", hp: 140, maxHp: 140, atk: 28 },
+        { name: "🐰 이어롭", hp: 90, maxHp: 90, atk: 18 }
+    ];
+
+    // 2. 스토리 보스 순서
+    const storyBosses = [
+        { name: "🪨 사마자르", hp: 180, maxHp: 180, atk: 28 },
+        { name: "🔷 디아루가", hp: 260, maxHp: 260, atk: 35 },
+        { name: "💖 펄기아", hp: 260, maxHp: 260, atk: 35 },
+        { name: "✨ 아르세우스", hp: 350, maxHp: 350, atk: 45 },
+        { name: "🤖 [최강보스] 무쇠무인", hp: 450, maxHp: 450, atk: 55 }
+    ];
+
+    // 3. 지닌 포켓몬
+    let myBag = [
+        { name: "🟢 브리구론", hp: 130, maxHp: 130, atk: 20 },
+        { name: "🐢 늑골라", hp: 140, maxHp: 140, atk: 22 },
+        { name: "🦴 램펄트", hp: 120, maxHp: 120, atk: 30 },
+        { name: "🪓 사마자르", hp: 135, maxHp: 135, atk: 25 },
+        { name: "🐂 켄타로스(아쿠아)", hp: 130, maxHp: 130, atk: 24 }
+    ];
+
+    let activeIndex = 0;
+    let currentEnemy = null;
+    let researchPoint = 0;
+    let storyProgress = 0;
+    let isStoryMode = false;
+    let canCatchCurrent = false;
+
+    function log(msg) {
+        const logDiv = document.getElementById('log');
+        logDiv.innerHTML += msg + "<br>";
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateUI() {
+        let player = myBag[activeIndex];
+        document.getElementById('research-point').innerText = researchPoint;
+
+        if (currentEnemy) {
+            document.getElementById('enemy-name').innerText = currentEnemy.name;
+            document.getElementById('enemy-hp-text').innerText = `${Math.max(0, currentEnemy.hp)}/${currentEnemy.maxHp}`;
+            document.getElementById('enemy-hp').style.width = `${(Math.max(0, currentEnemy.hp) / currentEnemy.maxHp) * 100}%`;
+
+            document.getElementById('player-pokemon-name').innerText = player.name;
+            document.getElementById('player-hp-text').innerText = `${Math.max(0, player.hp)}/${player.maxHp}`;
+            document.getElementById('player-hp').style.width = `${(Math.max(0, player.hp) / player.maxHp) * 100}%`;
+        }
+
+        // 연구도 100 달성 및 스토리 진행 처리
+        if (researchPoint >= 100 && !currentEnemy) {
+            document.getElementById('btn-explore').style.display = 'none';
+            
+            if (storyProgress < storyBosses.length) {
+                document.getElementById('btn-story').style.display = 'inline-block';
+                document.getElementById('btn-story').innerText = `⚔️ ${storyBosses[storyProgress].name} 도전에 응한다!`;
+            } else {
+                // 무쇠무인 제패 후 엔드 콘텐츠 개방
+                document.getElementById('btn-story').style.display = 'none';
+                document.getElementById('end-game-menu').style.display = 'block';
+            }
+        }
+    }
+
+    function explore() {
+        const rand = Math.floor(Math.random() * wildList.length);
+        currentEnemy = JSON.parse(JSON.stringify(wildList[rand]));
+        isStoryMode = false;
+        canCatchCurrent = true;
+        
+        startBattleUI();
+        log(`<br>⚠️ 야생의 <b>${currentEnemy.name}</b>이(가) 나타났다!`);
+    }
+
+    function startStoryBoss() {
+        if (storyProgress >= storyBosses.length) return;
+        
+        currentEnemy = JSON.parse(JSON.stringify(storyBosses[storyProgress]));
+        isStoryMode = true;
+        canCatchCurrent = true;
+
+        startBattleUI();
+        log(`<br>🔥 <b>[스토리 전투]</b> ${currentEnemy.name}이(가) 앞을 막아섭니다!`);
+    }
+
+    // --- 엔드 콘텐츠 3종 모드 ---
+    // 1. 체육관 관장 배틀
+    function startGymLeader() {
+        const leaders = [
+            { name: "🥊 관장 성호 [메가 붕붕]", hp: 380, maxHp: 380, atk: 45 },
+            { name: "❄️ 관장 멜리사 [눈설왕]", hp: 400, maxHp: 400, atk: 48 },
+            { name: "🐉 관장 드라세나 [음번]", hp: 420, maxHp: 420, atk: 52 }
+        ];
+        const rand = Math.floor(Math.random() * leaders.length);
+        currentEnemy = JSON.parse(JSON.stringify(leaders[rand]));
+        isStoryMode = false;
+        canCatchCurrent = false; // 관장 포켓몬은 포획 불가
+
+        startBattleUI();
+        log(`<br>🏛️ <b>[체육관 관장전]</b> ${currentEnemy.name}이(가) 승부를 걸어왔다!`);
+    }
+
+    // 2. 배틀리그 (극악 AI)
+    function startBattleLeague() {
+        currentEnemy = { name: "⚡ [배틀리그 AI] 챔피언 난천의 밀로틱", hp: 600, maxHp: 600, atk: 65, isLeagueAI: true };
+        isStoryMode = false;
+        canCatchCurrent = false; // 배틀리그 포획 불가
+
+        startBattleUI();
+        log(`<br>⚡ <b>[배틀리그]</b> 극강의 초고난도 AI 챔피언 포켓몬이 등장했습니다!`);
+    }
+
+    // 3. 번치코 잡기
+    function startBlaziken() {
+        currentEnemy = { name: "🔥 [전설의 스타팅] 번치코", hp: 320, maxHp: 320, atk: 42 };
+        isStoryMode = false;
+        canCatchCurrent = true; // 배틀 승리 또는 포획 가능
+
+        startBattleUI();
+        log(`<br>🔥 <b>[이벤트 전투]</b> 야생의 강력한 번치코가 모습을 드러냈습니다!`);
+    }
+
+    function startBattleUI() {
+        document.getElementById('battle-area').style.display = 'block';
+        document.getElementById('battle-actions').style.display = 'block';
+        document.getElementById('btn-explore').style.display = 'none';
+        document.getElementById('btn-story').style.display = 'none';
+        document.getElementById('end-game-menu').style.display = 'none';
+        
+        document.getElementById('btn-catch').style.display = canCatchCurrent ? 'inline-block' : 'none';
+        updateUI();
+    }
+
+    function attack(type) {
+        let player = myBag[activeIndex];
+        if (player.hp <= 0) {
+            log("❌ 현재 포켓몬이 쓰러져 있습니다! 가방에서 교체해 주세요.");
+            return;
+        }
+
+        let dmg = player.atk;
+        let enemyTurns = 1;
+
+        if (type === 'agile') {
+            dmg *= 0.7;
+            enemyTurns = Math.random() < 0.5 ? 0 : 1;
+            log("⚡ <b>속공!</b> 빠르게 허점을 파고들었습니다.");
+        } else if (type === 'strong') {
+            dmg *= 1.5;
+            enemyTurns = 2;
+            log("💥 <b>강공!</b> 묵직한 일격을 가했습니다.");
+        } else {
+            log("⚔️ 일반 공격!");
+        }
+
+        // 배틀리그 AI 특수 방어
+        if (currentEnemy.isLeagueAI && Math.random() < 0.3) {
+            log("🛡️ <b>[배틀리그 AI]</b> 적이 공격을 정밀하게 방어했습니다! (데미지 감소)");
+            dmg *= 0.5;
+        }
+
+        dmg = Math.round(dmg);
+        currentEnemy.hp -= dmg;
+        log(`적에게 ${dmg} 데미지!`);
+
+        if (currentEnemy.hp <= 0) {
+            winBattle(false);
+            return;
+        }
+
+        // 적 반격 턴
+        for (let i = 0; i < enemyTurns; i++) {
+            if (currentEnemy.hp > 0) {
+                let eDmg = Math.round(currentEnemy.atk * (0.8 + Math.random() * 0.4));
+                
+                // 배틀리그 AI 특수 공격 (추가 데미지)
+                if (currentEnemy.isLeagueAI && Math.random() < 0.4) {
+                    eDmg = Math.round(eDmg * 1.4);
+                    log(`⚡ <b>[배틀리그 AI]</b> 급소 공격!`);
+                }
+
+                player.hp -= eDmg;
+                log(`💥 ${currentEnemy.name}의 반격! (데미지: ${eDmg})`);
+                
+                if (player.hp <= 0) {
+                    player.hp = 0;
+                    log(`❌ ${player.name}이(가) 쓰러졌습니다!`);
+                    
+                    if (myBag.every(p => p.hp <= 0)) {
+                        log("💀 모든 포켓몬이 쓰러졌습니다... 마을로 돌아갑니다. (가방에서 치료 후 재도전)");
+                        myBag.forEach(p => p.hp = p.maxHp);
+                        endBattle();
+                        return;
+                    } else {
+                        log("🎒 가방에서 다른 포켓몬을 선출해 주세요!");
+                        updateUI();
+                        return;
+                    }
+                }
+            }
+        }
+        updateUI();
+    }
+
+    function catchPokemon() {
+        if (!canCatchCurrent) {
+            log("❌ 이 포켓몬은 볼로 잡을 수 없습니다!");
+            return;
+        }
+
+        let player = myBag[activeIndex];
+        const catchRate = (1 - (currentEnemy.hp / currentEnemy.maxHp)) * 0.7 + 0.15;
+        log("🔴 몬스터볼을 던졌습니다...");
+
+        if (Math.random() < catchRate) {
+            log(`🎯 축하합니다! <b>${currentEnemy.name}</b>을(를) 잡았습니다!`);
+            
+            myBag.push({
+                name: currentEnemy.name,
+                hp: currentEnemy.maxHp,
+                maxHp: currentEnemy.maxHp,
+                atk: currentEnemy.atk
+            });
+            log(`🎒 ${currentEnemy.name}이(가) 가방에 들어왔습니다.`);
+
+            winBattle(true);
+        } else {
+            log("❌ 포켓몬이 볼을 튕겨냈습니다!");
+            attack('normal');
+        }
+    }
+
+    function winBattle(isCatch) {
+        if (isStoryMode) {
+            log(`🎉 <b>${storyBosses[storyProgress].name}</b>을(를) 격파했습니다!`);
+            storyProgress++;
+        } else if (!isCatch) {
+            // 번치코 전투 승리 시 자동 포획 지원
+            if (currentEnemy.name.includes("번치코")) {
+                log(`🔥 번치코를 제패하고 팀으로 포섭했습니다!`);
+                myBag.push({ name: "🔥 번치코", hp: 320, maxHp: 320, atk: 42 });
+            } else {
+                log(`✨ 전투 승리! 승리 보상을 획득했습니다.`);
+            }
+
+            if (researchPoint < 100) {
+                researchPoint = Math.min(100, researchPoint + 20);
+            }
+        }
+        endBattle();
+    }
+
+    function endBattle() {
+        currentEnemy = null;
+        document.getElementById('battle-area').style.display = 'none';
+        document.getElementById('battle-actions').style.display = 'none';
+        
+        if (researchPoint < 100) {
+            document.getElementById('btn-explore').style.display = 'inline-block';
+        }
+        updateUI();
+    }
+
+    function openBag() {
+        const bagList = document.getElementById('bag-list');
+        bagList.innerHTML = "";
+
+        myBag.forEach((p, idx) => {
+            const item = document.createElement('div');
+            item.className = 'bag-item';
+            
+            const isCurrent = idx === activeIndex ? " <span style='color:#2ECC71;'>(참전)</span>" : "";
+            item.innerHTML = `
+                <div>
+                    <b>${p.name}</b>${isCurrent}<br>
+                    <small>HP: ${p.hp}/${p.maxHp} | ATK: ${p.atk}</small>
+                </div>
+                <div>
+                    <button class="btn" style="background:#3498DB;" onclick="healPokemon(${idx})">💊 치료</button>
+                    <button class="btn" ${idx === activeIndex || p.hp <= 0 ? 'disabled' : ''} onclick="selectPokemon(${idx})">선출</button>
+                </div>
+            `;
+            bagList.appendChild(item);
+        });
+
+        document.getElementById('bag-modal').style.display = 'block';
+    }
+
+    function closeBag() {
+        document.getElementById('bag-modal').style.display = 'none';
+    }
+
+    function selectPokemon(idx) {
+        activeIndex = idx;
+        log(`🔄 ${myBag[idx].name}(으)로 포켓몬을 교체했습니다!`);
+        updateUI();
+        closeBag();
+    }
+
+    function healPokemon(idx) {
+        myBag[idx].hp = myBag[idx].maxHp;
+        log(`💊 ${myBag[idx].name}의 체력을 모두 회복시켰습니다.`);
+        openBag();
+        updateUI();
+    }
+</script>
+<a href="../" style="position:absolute;top:10px;left:10px;z-index:9999;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;font:bold 0.8rem sans-serif;text-decoration:none">&#8592; 게임 목록</a>
+</body>
+</html>
