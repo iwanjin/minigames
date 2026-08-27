@@ -5,115 +5,195 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>미니게임 모음</title>
 <meta name="description" content="설치 없이 브라우저에서 바로 플레이하는 미니게임 모음">
+<meta name="theme-color" content="#5ecdff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
+    /* ============================================================
+       미니게임 목록 — 초등학생이 보기 좋은 큰 글자 + 밝은 색
+       - 글자 크기는 전부 clamp() 로 잡아서 320px 폰~데스크톱까지 대응
+       - 카드마다 고유 색(--c)을 주고 테두리/뱃지/태그가 그 색을 따라간다
+       ============================================================ */
     :root {
-        --bg: #14161f;
-        --card: #1e2130;
-        --card-hover: #262a3d;
-        --border: #333a52;
-        --text: #f2f4f8;
-        --muted: #99a0b5;
-        --accent: #f1c40f;
+        --sky-1: #5ecdff;
+        --sky-2: #a9eaff;
+        --sky-3: #bdf28d;
+        --ink: #2f2a56;        /* 흰 카드 위에서 대비 11:1 이상 */
+        --ink-soft: #5f5a86;
+        --card: #ffffff;
+        --radius: 22px;
     }
 
     * { box-sizing: border-box; }
 
+    html { -webkit-text-size-adjust: 100%; }
+
     body {
         margin: 0;
-        padding: 40px 20px 60px;
-        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-        background: var(--bg);
-        color: var(--text);
+        padding: clamp(18px, 5vw, 40px) clamp(14px, 4vw, 20px) clamp(40px, 9vw, 60px);
+        font-family: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Trebuchet MS', sans-serif;
+        background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 45%, var(--sky-3) 100%) fixed;
+        min-height: 100vh;
+        color: var(--ink);
+        line-height: 1.5;
         -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
     }
 
-    .wrap { max-width: 720px; margin: 0 auto; }
+    .wrap { max-width: 780px; margin: 0 auto; }
 
-    header { text-align: center; margin-bottom: 36px; }
+    /* ===== 머리말 ===== */
+    header { text-align: center; margin-bottom: clamp(20px, 5vw, 36px); }
 
     h1 {
         margin: 0 0 10px;
-        font-size: 2rem;
-        color: var(--accent);
-        text-shadow: 0 0 18px rgba(241, 196, 15, 0.25);
+        font-size: clamp(2rem, 8.5vw, 3.2rem);
+        line-height: 1.15;
+        color: #fff;
+        /* 흰 글자에 두꺼운 주황 외곽선 — 하늘색 배경에서도 또렷하게 */
+        text-shadow: -3px -3px 0 #e2571a, 3px -3px 0 #e2571a,
+                     -3px  3px 0 #e2571a, 3px  3px 0 #e2571a,
+                      0 6px 0 rgba(0, 0, 0, 0.18);
     }
 
-    header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    header p {
+        margin: 0;
+        font-size: clamp(1.05rem, 4.2vw, 1.3rem);
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 999px;
+        padding: 6px 16px;
+        display: inline-block;
+    }
 
+    /* ===== 카드 목록 ===== */
     .games {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 16px;
+        grid-template-columns: 1fr;
+        gap: clamp(14px, 3.5vw, 20px);
+    }
+
+    @media (min-width: 720px) {
+        .games { grid-template-columns: repeat(2, 1fr); }
     }
 
     .game {
         position: relative;
         display: block;
-        padding: 22px;
+        padding: clamp(16px, 4.5vw, 24px);
         background: var(--card);
-        border: 2px solid var(--border);
-        border-radius: 16px;
+        border: 4px solid var(--c);
+        border-radius: var(--radius);
         text-decoration: none;
-        color: inherit;
-        transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        color: var(--ink);
+        box-shadow: 0 6px 0 var(--c-dark), 0 10px 18px rgba(0, 0, 0, 0.15);
+        transition: transform 0.15s, box-shadow 0.15s;
     }
 
     .game:hover,
     .game:focus-visible {
-        background: var(--card-hover);
-        border-color: var(--accent);
-        transform: translateY(-3px);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 0 var(--c-dark), 0 14px 22px rgba(0, 0, 0, 0.2);
         outline: none;
     }
 
-    .emoji { font-size: 2.4rem; line-height: 1; }
+    /* 누르는 순간 쑥 들어가는 느낌 — 터치에서도 반응이 확실히 보인다 */
+    .game:active {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 var(--c-dark), 0 4px 10px rgba(0, 0, 0, 0.18);
+    }
 
-    .game h2 { margin: 12px 0 6px; font-size: 1.15rem; }
+    .emoji {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: clamp(58px, 15vw, 72px);
+        height: clamp(58px, 15vw, 72px);
+        border-radius: 50%;
+        background: var(--c-light);
+        border: 3px solid var(--c);
+        font-size: clamp(2rem, 7.5vw, 2.6rem);
+        line-height: 1;
+    }
 
-    .game p { margin: 0 0 14px; color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+    .game h2 {
+        margin: clamp(10px, 2.5vw, 14px) 0 6px;
+        font-size: clamp(1.4rem, 5.8vw, 1.75rem);
+        line-height: 1.25;
+        color: var(--c-dark);
+        letter-spacing: -0.01em;
+    }
 
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .game p {
+        margin: 0 0 14px;
+        font-size: clamp(1.02rem, 4vw, 1.15rem);
+        line-height: 1.6;
+        color: var(--ink);
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
 
     .tag {
-        font-size: 0.72rem;
-        padding: 3px 9px;
+        font-size: clamp(0.9rem, 3.4vw, 1rem);
+        padding: 5px 14px;
         border-radius: 999px;
-        background: rgba(241, 196, 15, 0.12);
-        color: var(--accent);
-        border: 1px solid rgba(241, 196, 15, 0.3);
+        background: var(--c-light);
+        color: var(--c-dark);
+        border: 2px solid var(--c);
     }
 
     /* 다른 사이트로 이동하는 카드 표시 */
     .external {
         position: absolute;
-        top: 16px;
-        right: 16px;
-        font-size: 0.7rem;
-        color: var(--muted);
-        border: 1px solid var(--border);
+        top: clamp(14px, 4vw, 20px);
+        right: clamp(14px, 4vw, 20px);
+        font-size: clamp(0.85rem, 3.2vw, 0.95rem);
+        color: #fff;
+        background: var(--c);
         border-radius: 999px;
-        padding: 2px 8px;
+        padding: 4px 12px;
     }
 
+    /* 카드별 색 — 밝은 색(light) / 기본(c) / 글자용 진한 색(dark) 3단 */
+    .c-pink   { --c: #ff5c8a; --c-dark: #c9285a; --c-light: #ffe6ee; }
+    .c-orange { --c: #ff8a3d; --c-dark: #cc4f16; --c-light: #fff0e0; }
+    .c-purple { --c: #9a72ff; --c-dark: #5a30d6; --c-light: #efe9ff; }
+    .c-teal   { --c: #17c3b2; --c-dark: #00776f; --c-light: #dcfaf6; }
+    .c-blue   { --c: #4b8dff; --c-dark: #1b56c9; --c-light: #e3edff; }
+
+    /* ===== 꼬리말 ===== */
     footer {
-        margin-top: 40px;
+        margin-top: clamp(28px, 7vw, 40px);
         text-align: center;
-        color: var(--muted);
-        font-size: 0.8rem;
+        font-size: clamp(0.95rem, 3.6vw, 1.05rem);
+        color: var(--ink);
     }
 
-    footer a { color: var(--muted); }
+    footer p {
+        margin: 0 auto 10px;
+        max-width: 34rem;
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 14px;
+        padding: 10px 14px;
+    }
+
+    footer a { color: #1b56c9; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .game { transition: none; }
+    }
 </style>
 </head>
 <body>
 <div class="wrap">
     <header>
-        <h1>미니게임 모음</h1>
-        <p>설치 없이 브라우저에서 바로 플레이하세요</p>
+        <h1>🎮 미니게임 모음</h1>
+        <p>설치 없이 바로 플레이하세요!</p>
     </header>
 
     <main class="games">
-        <a class="game" href="https://iwanjin.github.io/easygo-catmemories/" target="_blank" rel="noopener">
+        <a class="game c-pink" href="https://iwanjin.github.io/easygo-catmemories/" target="_blank" rel="noopener">
             <span class="external">다른 사이트 ↗</span>
             <div class="emoji">🐱</div>
             <h2>냥냥 메모리즈</h2>
@@ -124,7 +204,7 @@
             </div>
         </a>
 
-        <a class="game" href="mole/">
+        <a class="game c-orange" href="mole/">
             <div class="emoji">🔨</div>
             <h2>귀여운 두더지 잡기</h2>
             <p>30초 안에 두더지를 잡아 점수를 올리세요. 피버 타임에 들어가면 두더지가 한꺼번에 쏟아지고 황금 두더지 확률도 올라갑니다.</p>
@@ -134,7 +214,7 @@
             </div>
         </a>
 
-        <a class="game" href="pocket/">
+        <a class="game c-purple" href="pocket/">
             <div class="emoji">⚔️</div>
             <h2>포켓몬 레전드: 히스이의 전설</h2>
             <p>포켓몬을 포획하고 육성해 전설의 보스와 배틀리그 극악 AI에 도전하는 턴제 RPG입니다.</p>
@@ -144,7 +224,7 @@
             </div>
         </a>
 
-        <a class="game" href="https://easy-go-baduk.onrender.com/?game=omok" target="_blank" rel="noopener">
+        <a class="game c-teal" href="https://easy-go-baduk.onrender.com/?game=omok" target="_blank" rel="noopener">
             <span class="external">다른 사이트 ↗</span>
             <div class="emoji">⚫</div>
             <h2>오목</h2>
@@ -155,7 +235,7 @@
             </div>
         </a>
 
-        <a class="game" href="https://easy-go-baduk.onrender.com/?game=baduk" target="_blank" rel="noopener">
+        <a class="game c-blue" href="https://easy-go-baduk.onrender.com/?game=baduk" target="_blank" rel="noopener">
             <span class="external">다른 사이트 ↗</span>
             <div class="emoji">⬜</div>
             <h2>바둑</h2>
